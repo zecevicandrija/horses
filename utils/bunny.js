@@ -49,14 +49,14 @@ const getSecurePlayerUrl = (videoId) => {
     }
 
     // Token će važiti 3 sata. Možete promeniti po potrebi.
-    const expires = Math.floor(Date.now() / 1000) + (3 * 60 * 60); 
+      const expires = Math.floor(Date.now() / 1000) + 3 * 60 * 60; 
 
      const path = `/embed/${libraryId}/${videoId}`;
-    const message = path + expires;
-const token = crypto
-  .createHmac('sha256', tokenAuthKey)
-  .update(message)
-  .digest('hex');
+    const message = videoId + expires;
+    const token = crypto
+        .createHmac('sha256', tokenAuthKey)
+        .update(message)
+        .digest('hex');
 
     // Sastavljanje sigurnog URL-a
     const secureUrl = `https://iframe.mediadelivery.net${path}?token=${token}&expires=${expires}`;
