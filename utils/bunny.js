@@ -54,8 +54,8 @@ const getSecurePlayerUrl = (videoId) => {
      const path = `/embed/${libraryId}/${videoId}`;
     const message = videoId + expires;
     const token = crypto
-        .createHmac('sha256', tokenAuthKey)
-        .update(message)
+        .createHash('sha256')
+        .update(tokenAuthKey + videoId + expires)
         .digest('hex');
 
     // Sastavljanje sigurnog URL-a
