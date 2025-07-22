@@ -60,6 +60,8 @@ const getSecurePlayerUrl = (videoId) => {
 
     // Sastavljanje sigurnog URL-a
     const secureUrl = `https://iframe.mediadelivery.net${path}?token=${token}&expires=${expires}`;
+
+    console.log('secureurl: ', secureUrl);
     
     return secureUrl;
 };
