@@ -52,12 +52,14 @@ const getSecurePlayerUrl = (videoId) => {
     const expires = Math.floor(Date.now() / 1000) + (3 * 60 * 60); 
 
     const path = `/play/${libraryId}/${videoId}`;
-    const stringToSign = tokenAuthKey + path + expires;
-
-    const md5Hash = crypto.createHash('md5').update(stringToSign).digest('hex');
+    const message = path + expires;
+const token = crypto
+  .createHmac('sha256', tokenAuthKey)
+  .update(message)
+  .digest('hex');
 
     // Sastavljanje sigurnog URL-a
-    const secureUrl = `https://iframe.mediadelivery.net${path}?token=${md5Hash}&expires=${expires}`;
+    const secureUrl = `https://iframe.mediadelivery.net${path}?token=${token}&expires=${expires}`;
     
     return secureUrl;
 };
