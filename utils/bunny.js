@@ -51,7 +51,7 @@ const getSecurePlayerUrl = (videoId) => {
     // Token će važiti 3 sata. Možete promeniti po potrebi.
     const expires = Math.floor(Date.now() / 1000) + (3 * 60 * 60); 
 
-    const path = `/play/${libraryId}/${videoId}`;
+     const path = `/embed/${libraryId}/${videoId}`;
     const message = path + expires;
 const token = crypto
   .createHmac('sha256', tokenAuthKey)
