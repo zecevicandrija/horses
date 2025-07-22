@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const db = require('../db');
 // Uvozimo ispravne funkcije iz našeg Bunny.js helpera
-const { createVideo, uploadVideo, getPlayerUrl } = require('../utils/bunny');
+const { createVideo, uploadVideo, getSecurePlayerUrl } = require('../utils/bunny');
 
 // Multer ostaje isti, on samo priprema fajl u memoriji
 const upload = multer({ storage: multer.memoryStorage() });
@@ -78,9 +78,9 @@ router.get('/:id/stream', async (req, res) => {
         }
 
         const videoId = lekcije[0].video_url;
-        const playerUrl = getPlayerUrl(videoId); // Koristimo ispravnu funkciju
+        const secureUrl = getSecurePlayerUrl(videoId); // Koristimo NOVU, sigurnu funkciju
 
-        res.json({ url: playerUrl });
+        res.json({ url: secureUrl });
     } catch (error) {
         console.error('Greška pri generisanju linka:', error);
         res.status(500).json({ error: 'Greška na serveru.' });

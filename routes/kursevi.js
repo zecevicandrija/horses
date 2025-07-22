@@ -7,35 +7,6 @@ const uploadToBunny = require('../utils/bunnyHelper'); // Uvozimo naš Bunny.net
 // Multer ostaje isti
 const upload = multer({ storage: multer.memoryStorage() });
 
-const lemonSqueezyApiCall = async (endpoint, method, body = null) => {
-    const url = `https://api.lemonsqueezy.com/v1/${endpoint}`;
-    const headers = {
-        'Accept': 'application/vnd.api+json',
-        'Content-Type': 'application/vnd.api+json',
-        'Authorization': `Bearer ${process.env.LEMON_SQUEEZY_API_KEY}`
-    };
-
-    const options = {
-        method,
-        headers,
-    };
-
-    if (body) {
-        options.body = JSON.stringify(body);
-    }
-
-    const response = await fetch(url, options);
-    const data = await response.json();
-
-    if (!response.ok) {
-        console.error("Lemon Squeezy API greška:", data);
-        const errorMessage = data.errors?.[0]?.detail || 'Nepoznata greška sa Lemon Squeezy API.';
-        throw new Error(errorMessage);
-    }
-
-    return data;
-};
-
 // GET Svi kursevi
 router.get('/', async (req, res) => {
     try {
@@ -77,57 +48,41 @@ router.get('/instruktor/:id', async (req, res) => {
     }
 });
 
-
 // --- POST Novi kurs sa slikom ---
 router.post('/', upload.single('slika'), async (req, res) => {
-    // db.getConnection() je važno za transakcije
-    const connection = await db.getConnection(); 
+    const connection = await db.getConnection();
     try {
         const { naziv, opis, instruktor_id, cena, is_subscription, lemon_squeezy_variant_id } = req.body;
-        // Očekujemo niz sekcija, npr. sekcije[]="Uvod"&sekcije[]="Napredno"
-        const sekcije = req.body.sekcije || []; 
+        const sekcije = req.body.sekcije || [];
 
         if (!naziv || !opis || !instruktor_id || cena === undefined || !req.file) {
             return res.status(400).json({ error: 'Nedostaju obavezna polja ili slika.' });
         }
 
-        // Započni transakciju
         await connection.beginTransaction();
-
         const uniqueFileName = `slika-kursa-${Date.now()}-${req.file.originalname.replace(/\s/g, '_')}`;
         const slikaUrl = await uploadToBunny(req.file.buffer, uniqueFileName);
 
-        // 1. Kreiraj kurs
         const kursQuery = 'INSERT INTO kursevi (naziv, opis, instruktor_id, cena, slika, is_subscription, lemon_squeezy_variant_id) VALUES (?, ?, ?, ?, ?, ?, ?)';
         const [kursResult] = await connection.query(kursQuery, [naziv, opis, instruktor_id, cena, slikaUrl, is_subscription || 0, lemon_squeezy_variant_id]);
-        
         const noviKursId = kursResult.insertId;
 
-        // 2. Ako postoje sekcije, dodaj ih
-        if (sekcije && sekcije.length > 0) {
+        if (sekcije.length > 0) {
             const sekcijeQuery = 'INSERT INTO sekcije (kurs_id, naziv, redosled) VALUES ?';
-            // Pripremi podatke za bulk insert: [[kurs_id, naziv, redosled], [kurs_id, naziv, redosled], ...]
             const sekcijeData = sekcije.map((naziv, index) => [noviKursId, naziv, index + 1]);
-            
             await connection.query(sekcijeQuery, [sekcijeData]);
         }
-        
-        // Potvrdi transakciju
-        await connection.commit();
-        
-        res.status(201).json({ message: 'Kurs i sekcije su uspešno dodati', courseId: noviKursId });
 
+        await connection.commit();
+        res.status(201).json({ message: 'Kurs i sekcije su uspešno dodati', courseId: noviKursId });
     } catch (error) {
-        // Ako dođe do bilo kakve greške, poništi sve promene
         await connection.rollback();
-        console.error("Greška prilikom dodavanja kursa:", error);
+        console.error('Greška prilikom dodavanja kursa:', error);
         res.status(500).json({ error: 'Došlo je do greške na serveru.' });
     } finally {
-        // Uvek otpusti konekciju nazad u pool
         if (connection) connection.release();
     }
 });
-
 
 // --- PUT Ažuriranje kursa sa (opciono) novom slikom ---
 router.put('/:id', upload.single('slika'), async (req, res) => {
@@ -161,11 +116,10 @@ router.put('/:id', upload.single('slika'), async (req, res) => {
 
         res.status(200).json({ message: 'Kurs uspešno ažuriran' });
     } catch (error) {
-        console.error("Greška prilikom ažuriranja kursa:", error);
+        console.error('Greška prilikom ažuriranja kursa:', error);
         res.status(500).json({ error: 'Došlo je do greške na serveru.' });
     }
 });
-
 
 // --- DELETE Brisanje kursa (ostaje isto) ---
 router.delete('/:id', async (req, res) => {
@@ -184,24 +138,20 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-// Ovaj endpoint će za dati kurs i korisnika vratiti sve sekcije sa progresom
+// GET progres sekcija za korisnika
 router.get('/progres-sekcija/:kursId/korisnik/:korisnikId', async (req, res) => {
     try {
         const { kursId, korisnikId } = req.params;
-
-        // Upit koristi novu, ispravnu strukturu baze sa 'sekcije' tabelom
         const query = `
             SELECT
                 s.id AS sekcija_id,
                 s.naziv AS naziv_sekcije,
                 s.redosled,
-                -- Podupit 1: Broji ukupan broj lekcija u ovoj sekciji
                 (SELECT COUNT(*) FROM lekcije l WHERE l.sekcija_id = s.id) AS ukupan_broj_lekcija,
-                -- Podupit 2: Broji koliko je lekcija iz ove sekcije korisnik kompletirao
                 (SELECT COUNT(kl.id)
                  FROM kompletirane_lekcije kl
                  JOIN lekcije l2 ON kl.lekcija_id = l2.id
-                 WHERE l2.sekcija_id = s.id AND kl.korisnik_id = ?) AS kompletiranih_lekcija
+                 WHERE l2.sekcija_id = s.id AND kl.korisnik_id = ?) AS kompletiranих_lekcija
             FROM
                 sekcije s
             WHERE
@@ -209,21 +159,18 @@ router.get('/progres-sekcija/:kursId/korisnik/:korisnikId', async (req, res) => 
             GROUP BY
                 s.id, s.naziv, s.redosled
             ORDER BY
-                s.redosled ASC; -- Sortiramo po redosledu koji si definisao
+                s.redosled ASC;
         `;
 
         const [sekcije] = await db.query(query, [korisnikId, kursId]);
-
-        // Izračunaj procenat progresa za svaku sekciju
         const progresPoSekcijama = sekcije.map(sekcija => ({
             ...sekcija,
             progres: sekcija.ukupan_broj_lekcija > 0
-                ? Math.round((sekcija.kompletiranih_lekcija / sekcija.ukupan_broj_lekcija) * 100)
+                ? Math.round((sekcija.kompletiranих_lekcija / sekcija.ukupan_broj_lekcija) * 100)
                 : 0
         }));
 
         res.status(200).json(progresPoSekcijama);
-
     } catch (err) {
         console.error('Greška pri dohvatanju progresa po sekcijama:', err);
         res.status(500).json({ error: 'Greška na serveru.' });

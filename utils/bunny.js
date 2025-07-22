@@ -1,15 +1,18 @@
 // backend/utils/bunny.js
 const axios = require('axios');
+const crypto = require('crypto'); // NOVO: Uvozimo 'crypto' modul
 
 const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
 const apiKey = process.env.BUNNY_STREAM_API_KEY;
+// NOVO: Učitavamo i ključ za autorizaciju tokena
+const tokenAuthKey = process.env.BUNNY_STREAM_TOKEN_KEY; 
 
 const bunnyAPI = axios.create({
     baseURL: 'https://video.bunnycdn.com',
     headers: { 'AccessKey': apiKey }
 });
 
-// Kreira prazan video objekat i vraća njegov GUID
+// Funkcije createVideo i uploadVideo ostaju potpuno ISTE
 const createVideo = async (title) => {
     try {
         const { data } = await bunnyAPI.post(`/library/${libraryId}/videos`, { title });
@@ -20,7 +23,6 @@ const createVideo = async (title) => {
     }
 };
 
-// Uploaduje fajl na dobijeni GUID
 const uploadVideo = async (videoGuid, fileBuffer) => {
     try {
         await axios.put(`https://video.bunnycdn.com/library/${libraryId}/videos/${videoGuid}`, fileBuffer, {
@@ -36,10 +38,29 @@ const uploadVideo = async (videoGuid, fileBuffer) => {
     }
 };
 
-// Generiše jednostavan, javni link za prikazivanje videa
-const getPlayerUrl = (videoId) => {
-    // Ovo je ispravan URL za ugrađivanje u ReactPlayer
-    return `https://iframe.mediadelivery.net/play/${libraryId}/${videoId}`;
+// --- OVO JE KLJUČNA PROMENA ---
+// Stara, nebezbedna funkcija getPlayerUrl se briše.
+// Umesto nje, dodajemo novu, sigurnu funkciju.
+
+const getSecurePlayerUrl = (videoId) => {
+    if (!tokenAuthKey) {
+        console.error("BUNNY_TOKEN_AUTH_KEY nije postavljen u .env fajlu!");
+        throw new Error('Token ključ za autorizaciju nije konfigurisan.');
+    }
+
+    // Token će važiti 3 sata. Možete promeniti po potrebi.
+    const expires = Math.floor(Date.now() / 1000) + (3 * 60 * 60); 
+
+    const path = `/play/${libraryId}/${videoId}`;
+    const stringToSign = tokenAuthKey + path + expires;
+
+    const md5Hash = crypto.createHash('md5').update(stringToSign).digest('hex');
+
+    // Sastavljanje sigurnog URL-a
+    const secureUrl = `https://iframe.mediadelivery.net${path}?token=${md5Hash}&expires=${expires}`;
+    
+    return secureUrl;
 };
 
-module.exports = { createVideo, uploadVideo, getPlayerUrl };
+// Ažuriramo šta izvozimo iz fajla
+module.exports = { createVideo, uploadVideo, getSecurePlayerUrl };
