@@ -28,16 +28,15 @@ router.post('/kreiraj-checkout', async (req, res) => {
         
         console.log(`👉 Pokušavam kreirati checkout sa variantId=${variantId} i storeId=${storeId}`);
 
+        // ISPRAVKA JE OVDE: storeId i variantId se prosleđuju kao prvi i drugi argument,
+        // a ostatak podataka kao treći argument (objekat).
         const { data: checkout, error } = await createCheckout(storeId, variantId, {
             checkoutData: {
                 email,
-                name: `${ime} ${prezime}`, // Ovo polje ostaje radi prikaza na checkout stranici
+                name: `${ime} ${prezime}`,
             },
             custom: {
-                // KLJUČNA IZMENA: Šaljemo odvojene podatke koje će webhook moći da pročita
                 kurs_id: String(kurs_id),
-                korisnik_ime: ime,
-                korisnik_prezime: prezime
             },
         });
 
