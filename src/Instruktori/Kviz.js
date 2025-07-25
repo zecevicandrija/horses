@@ -19,7 +19,7 @@ const Kviz = () => {
     useEffect(() => {
         const fetchCourses = async () => {
             try {
-                const response = await axios.get(`https://horses-1.onrender.com/api/kursevi/instruktor/${user.id}`);
+                const response = await axios.get(`http://localhost:5000/api/kursevi/instruktor/${user.id}`);
                 setCourses(response.data);
             } catch (error) {
                 console.error('Error fetching courses:', error);
@@ -35,7 +35,7 @@ const Kviz = () => {
     useEffect(() => {
         const fetchLessons = async () => {
             try {
-                const response = await axios.get(`https://horses-1.onrender.com/api/lekcije/course/${selectedCourse}`);
+                const response = await axios.get(`http://localhost:5000/api/lekcije/course/${selectedCourse}`);
                 setLessons(response.data);
             } catch (error) {
                 console.error('Error fetching lessons:', error);
@@ -72,7 +72,7 @@ const Kviz = () => {
     
         try {
             for (const q of questions) {
-                await axios.post('https://horses-1.onrender.com/api/kvizovi', {
+                await axios.post('http://localhost:5000/api/kvizovi', {
                     lesson_id: selectedLesson,
                     question: q.question,
                     answers: q.answers,

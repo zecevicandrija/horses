@@ -44,7 +44,7 @@ const SignUpPage = () => {
         adresa,
         telefon,
       });
-      const response = await axios.post("https://horses-1.onrender.com/api/korisnici", {
+      const response = await axios.post("http://localhost:5000/api/korisnici", {
         ime,
         prezime,
         email,

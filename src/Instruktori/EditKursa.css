@@ -159,6 +159,190 @@
     cursor: pointer;
 }
 
+/* --- NOVI STILOVI ZA UPRAVLJANJE SEKCIJAMA --- */
+
+.management-panel {
+    background-color: #222;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    border: 1px solid #333;
+}
+
+.management-panel h2 {
+    text-align: center;
+    color: #ffa500;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+}
+
+.save-order-btn {
+    display: block;
+    width: 100%;
+    padding: 0.8rem;
+    margin-bottom: 1.5rem;
+    background-color: #27ae60;
+    color: white;
+    font-weight: bold;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.save-order-btn:hover {
+    background-color: #2ecc71;
+}
+
+.sekcije-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sekcija-card-edit {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #2c2c2c;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #444;
+}
+
+.sekcija-card-edit h4 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #f0f0f0;
+    flex-grow: 1;
+}
+
+.sekcija-edit-input {
+    flex-grow: 1;
+    padding: 0.5rem;
+    font-size: 1.2rem;
+    background-color: #333;
+    border: 1px solid #555;
+    color: #fff;
+    border-radius: 5px;
+    margin-right: 1rem;
+}
+
+.sekcija-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.action-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.action-btn:hover {
+    transform: scale(1.05);
+}
+
+.save-btn {
+    background-color: #2ecc71;
+    color: white;
+}
+.save-btn:hover {
+    background-color: #27ae60;
+}
+
+.cancel-btn {
+    background-color: #95a5a6;
+    color: #333;
+}
+.cancel-btn:hover {
+    background-color: #7f8c8d;
+}
+
+.order-controls {
+    display: flex;
+    gap: 0.3rem;
+    margin-left: 1rem;
+    border-left: 1px solid #444;
+    padding-left: 1rem;
+}
+
+.arrow-btn {
+    background-color: #555;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.arrow-btn:hover {
+    background-color: #666;
+}
+
+.arrow-btn:disabled {
+    background-color: #444;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.separator {
+    border: none;
+    height: 2px;
+    background-color: #333;
+    margin: 3rem 0;
+}
+
+/* Stilovi za dodavanje nove sekcije */
+.add-sekcija-panel {
+    margin-top: 2rem;
+    border-top: 1px solid #444;
+    padding-top: 2rem;
+}
+
+.add-sekcija-btn {
+    width: 100%;
+    padding: 0.8rem;
+    background-color: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+    border: 2px dashed #3498db;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.add-sekcija-btn:hover {
+    background-color: rgba(52, 152, 219, 0.3);
+    color: #5dade2;
+}
+
+.add-sekcija-form {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.sekcija-add-input {
+    flex-grow: 1;
+    padding: 0.75rem;
+    font-size: 1.1rem;
+    background-color: #333;
+    border: 1px solid #555;
+    color: #fff;
+    border-radius: 5px;
+}
+
 @media (max-width: 768px) {
     .edit-kurs-container {
         padding: 1rem;
@@ -166,5 +350,67 @@
     }
     .lessons-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+/* --- RESPONSIVE STILOVI ZA SEKCIJE --- */
+
+/* Tablet i manji uređaji (do 768px) */
+@media (max-width: 768px) {
+    .management-panel {
+        padding: 1.5rem;
+    }
+
+    .sekcija-card-edit {
+        /* Prebaci u kolonu za bolji prikaz na manjim ekranima */
+        flex-direction: column;
+        align-items: flex-start; /* Poravnaj elemente na početak */
+    }
+
+    .sekcija-edit-input {
+        width: 100%; /* Neka input zauzme punu širinu */
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+
+    .sekcija-actions {
+        width: 100%; /* Neka akcije zauzmu punu širinu */
+        justify-content: space-between; /* Rasporedi dugmad */
+    }
+
+    .order-controls {
+        margin-left: 0;
+        padding-left: 0.75rem;
+    }
+}
+
+/* Mobilni telefoni (do 480px) */
+@media (max-width: 480px) {
+    .management-panel {
+        padding: 1rem;
+    }
+
+    .sekcija-card-edit {
+        padding: 1rem;
+    }
+
+    .sekcija-actions {
+        flex-wrap: wrap; /* Dozvoli prelom dugmadi u novi red */
+        justify-content: flex-start; /* Počni od leve strane */
+        gap: 0.5rem;
+    }
+    
+    .action-btn {
+        /* Omogući dugmadima da rastu i zauzmu prostor */
+        flex-grow: 1;
+        text-align: center;
+    }
+
+    .order-controls {
+        width: 100%;
+        justify-content: center;
+        margin-top: 0.5rem;
+        padding-left: 0;
+        border-left: none;
     }
 }

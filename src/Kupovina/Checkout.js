@@ -39,7 +39,7 @@ const Checkout = () => {
         const kursZaKupovinu = items[0];
 
         try {
-            const response = await axios.post('https://horses-1.onrender.com/api/placanje/kreiraj-checkout', {
+            const response = await axios.post('http://localhost:5000/api/placanje/kreiraj-checkout', {
                 kurs_id: kursZaKupovinu.id,
                 ime,
                 prezime,

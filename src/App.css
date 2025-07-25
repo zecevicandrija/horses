@@ -1,6 +1,6 @@
 :root {
   --primary-color: #ff3c00;
-  --secondary-color: #ff3c00
+  --secondary-color: #ff3c00;
   --accent-color: #ff3c00;
   --text-color: #222;
   --card-bg: #ffffff;
@@ -9,26 +9,11 @@
   --button-text: #fff;
   --button-hover: var(--secondary-color);
 }
-
-[data-theme='dark'] {
-  --primary-color: #ff3c00;
-  --secondary-color: #ff3c00;
-  --accent-color: #ff3c00;
-  --background-color: #121212;
-  --text-color: #e0e0e0;
-  --card-bg: #1e1e1e;
-  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --button-bg: var(--primary-color);
-  --button-text: white;
-  --button-hover: #ff3c00;
-}
-
 /* Global Reset */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Montserrat', sans-serif;
 }
 
 html,
@@ -71,72 +56,4 @@ body,
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-}
-
-/* Logo spin animation */
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-  animation: App-logo-spin infinite 20s linear;
-}
-
-/* Responsive logo animation */
-@media (prefers-reduced-motion: reduce) {
-  .App-logo {
-    animation: none;
-  }
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Link styling */
-.App-link {
-  color: var(--accent-color);
-  text-decoration: none;
-}
-
-.App-link:hover {
-  text-decoration: underline;
-}
-
-/* Buttons (shared style) */
-button {
-  background-color: var(--button-bg);
-  color: var(--button-text);
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  cursor: pointer;
-  margin: 0.3rem;
-  transition: background-color 0.3s;
-}
-
-button:hover {
-  background-color: var(--button-hover);
-}
-
-/* Cards */
-.card {
-  background-color: var(--card-bg);
-  box-shadow: var(--card-shadow);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin: 1rem auto;
-  max-width: 800px;
-  transition: background-color 0.3s, box-shadow 0.3s;
-}
-
-/* Utility */
-.center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }

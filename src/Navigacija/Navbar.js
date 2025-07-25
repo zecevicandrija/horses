@@ -74,9 +74,9 @@ const Navbar = () => {
                                 <li className="navbar-item auth-item">
                                     <Link to="/login" className="navbar-link" onClick={closeMobileMenu}>LOGIN</Link>
                                 </li>
-                                <li className="navbar-item auth-item">
+                                {/* <li className="navbar-item auth-item">
                                     <Link to="/signup" className="navbar-link register-link" onClick={closeMobileMenu}>REGISTRACIJA</Link>
-                                </li>
+                                </li> */}
                             </>
                         ) : (
                             <>

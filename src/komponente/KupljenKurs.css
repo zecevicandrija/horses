@@ -1,24 +1,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap');
 
+:root {
+    --narandzasta: #ff4500; /* OrangeRed */
+    --narandzasta-svetla: #ff6a34;
+    --tamna-pozadina: #121212;
+    --svetla-pozadina: #1a1a1a;
+    --tamna-kartica: #212121;
+    --tekst-primarni: #f0f0f0;
+    --tekst-sekundarni: #a0a0a0;
+    --border-boja: #333;
+}
+
 .kupljeni-kursevi-container1 {
     padding: 2rem;
-    color: #ffffff;
+    color: var(--tekst-primarni);
     min-height: 100vh;
     font-family: 'Montserrat', sans-serif;
     margin-top: 2%;
+    overflow-x: hidden; /* Sprečava horizontalni skrol zbog animacija */
 }
 
 .naslovkupljeni1 {
     text-align: center;
     font-size: 2.5rem;
     margin-bottom: 2rem;
-    color: #ffffff;
+    color: var(--tekst-primarni);
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    position: relative;
-    display: inline-block;
-    width: 100%;
+    letter-spacing: 2px;
 }
 
 .naslovkupljeni1::after {
@@ -26,160 +35,217 @@
     display: block;
     width: 80px;
     height: 4px;
-    background: #ffd700;
+    background: var(--narandzasta);
     margin: 10px auto;
+    border-radius: 2px;
 }
 
-.kurs-list1 {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 2rem;
+/* Stilovi za Selektor Kursa (ostaju slični) */
+.kurs-selector-container {
+    max-width: 600px;
+    margin: 0 auto 4rem auto;
+    background: var(--svetla-pozadina);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-boja);
+}
+
+.kurs-selector-container label {
+    display: block;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: var(--tekst-sekundarni);
+}
+
+.kurs-select-dropdown {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+    background-color: #2c2c2c;
+    color: var(--tekst-primarni);
+    border: 1px solid #555;
+    border-radius: 8px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ff4500%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E');
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 0.8em;
+}
+
+/* --- NOVI TIMELINE DIZAJN --- */
+
+.kurs-timeline {
+    position: relative;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 0;
+}
+
+/* Vertikalna linija */
+.kurs-timeline::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    background-color: var(--border-boja);
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    margin-left: -2px;
+    z-index: 1;
+    animation: drawLine 2s ease-out forwards;
+}
+
+@keyframes drawLine {
+    from { height: 0; }
+    to { height: 100%; }
+}
+
+.timeline-item {
+    padding: 10px 40px;
+    position: relative;
+    width: 50%;
+}
+
+/* Kružić na liniji */
+.timeline-dot {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    right: -10px;
+    background-color: var(--tamna-pozadina);
+    border: 4px solid var(--narandzasta);
+    top: 32px;
+    border-radius: 50%;
+    z-index: 2;
+}
+
+/* Raspored levo/desno */
+.timeline-item:nth-child(odd) {
+    left: 0;
+}
+
+.timeline-item:nth-child(even) {
+    left: 50%;
+}
+
+/* Postavljanje kružića za desne elemente */
+.timeline-item:nth-child(even) .timeline-dot {
+    left: -10px;
 }
 
 .kurs-card1 {
-    background: #1a1a1a;
-    border-radius: 10px;
-    overflow: hidden;
-    padding: 1.5rem;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: var(--tamna-kartica);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    border: 1px solid var(--border-boja);
     display: flex;
     flex-direction: column;
     position: relative;
-    border: 1px solid #2a2a2a;
-    height: 100%;
-    cursor: pointer;
+    opacity: 0; /* Počinje nevidljivo za animaciju */
+    animation: slideIn 0.6s ease-out forwards;
 }
 
-.kurs-card1:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 30px rgba(255, 215, 0, 0.2);
-    border-color: #ffd700;
+/* Staggered animacija */
+.timeline-item:nth-child(1) .kurs-card1 { animation-delay: 0.2s; }
+.timeline-item:nth-child(2) .kurs-card1 { animation-delay: 0.4s; }
+.timeline-item:nth-child(3) .kurs-card1 { animation-delay: 0.6s; }
+.timeline-item:nth-child(4) .kurs-card1 { animation-delay: 0.8s; }
+/* ... dodaj još po potrebi */
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.kurs-slika1 {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 5px;
-    margin-bottom: 1rem;
-    border: 1px solid #333;
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.timeline-step-number {
+    background-color: var(--narandzasta);
+    color: var(--tekst-primarni);
+    min-width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-bottom: 10px;
 }
 
 .kurs-card1 h3 {
     font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-    color: #ffd700;
+    margin: 0;
 }
 
-.kurs-card1 p {
-    margin-bottom: 0.5rem;
-    line-height: 1.5;
+.kurs-card1:hover {
+    transform: translateY(-10px);
+    border-color: var(--narandzasta);
+    /* NOVO: Narandžasti "glow" efekat */
+    box-shadow: 0 0 55px rgba(255, 69, 0, 0.4), 0 10px 20px rgba(0, 0, 0, 0.4);
+    transition: .4s;
 }
 
-.kurs-card1 .info-group {
-    background: rgba(255, 215, 0, 0.1);
-    border-radius: 5px;
-    padding: 0.8rem;
-    margin: 0.5rem 0;
+.card-stats {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-around;
+    background-color: var(--tamna-pozadina);
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
 }
 
-.istekla-pretplata1 {
-    color: #ff3333;
-    font-weight: bold;
-    background: rgba(255, 51, 51, 0.1);
-    padding: 0.5rem;
-    border-radius: 5px;
-    text-align: center;
-}
+.stat-item { text-align: center; }
+.stat-value { font-size: 1.5rem; font-weight: 700; }
+.stat-label { font-size: 0.8rem; color: var(--tekst-sekundarni); text-transform: uppercase; }
 
-.kurs-link1, .produzi-link1 {
-    background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
-    color: #000;
-    border: none;
-    padding: 12px 25px;
-    border-radius: 30px;
-    cursor: pointer;
-    font-weight: bold;
-    text-align: center;
-    text-decoration: none;
-    display: block;
-    margin-top: 1rem;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 0.9rem;
-    box-shadow: 0 4px 10px rgba(255, 215, 0, 0.3);
-}
+.progres-container { margin-bottom: 1.5rem; }
+.progres-info { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem; }
+.progres-info h4 { margin: 0; font-size: 1rem; color: var(--tekst-sekundarni); }
+.procenti-broj { font-weight: bold; }
 
-.kurs-link1:hover, .produzi-link1:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 15px rgba(255, 215, 0, 0.5);
-}
-
-.button-group1 {
-    margin-top: auto;
-    padding-top: 1rem;
-}
-
-/* Progres bar stilovi */
-/* Progres bar sa procentom na početku */
-.progres-container {
-    margin: 1.5rem 0;
-}
-
-.progres-container h4 {
-    margin-bottom: 0.5rem;
-    font-size: 1rem;
-    color: #ccc;
-}
-
-.progres-bar {
-    width: 100%;
-    height: 25px;
-    background: #333;
-    border-radius: 20px;
-    overflow: hidden;
-    position: relative;
-    box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-}
+.progres-bar { width: 100%; height: 8px; background: #333; border-radius: 8px; overflow: hidden; }
 
 .progres-popunjeno {
     height: 100%;
-    background: linear-gradient(90deg, #ffd700 0%, #ffaa00 100%);
-    border-radius: 20px;
-    transition: width 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
-    position: absolute;
-    left: 0;
-    top: 0;
-}
-
-.procenti-start {
-    font-weight: bold;
-    color: #fff;
-    font-size: 0.9rem;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.7);
-    z-index: 2;
-    padding-left: 10px;
+    background: var(--narandzasta);
+    border-radius: 8px;
     position: relative;
-    font-family: 'Montserrat', sans-serif;
-    animation: fadeIn 0.5s ease-out;
+    overflow: hidden;
+    transition: width 1s cubic-bezier(0.25, 1, 0.5, 1);
+    animation: fillProgress 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
-/* Animacija za sjaj */
-.progres-popunjeno::before {
+/* Animacija popunjavanja progres bara */
+@keyframes fillProgress {
+    from { width: 0 !important; }
+}
+
+
+/* Shine animacija za progress bar */
+.progres-popunjeno::after {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    animation: shine 2s infinite;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+    animation: shine 2s infinite linear;
 }
 
 @keyframes shine {
@@ -187,58 +253,54 @@
     100% { transform: translateX(100%); }
 }
 
-/* Animacija za sjaj */
-@keyframes shine {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+.button-group1 { margin-top: auto; }
+
+.kurs-link1 {
+    width: 100%;
+    background: var(--narandzasta);
+    color: var(--tekst-primarni);
+    border: none;
+    padding: 14px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
 }
 
-@media (max-width: 768px) {
-    .kurs-list1 {
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+.kurs-link1:hover {
+    background: var(--narandzasta-svetla);
+    box-shadow: 0 8px 20px rgba(255, 69, 0, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Responsive za timeline */
+@media (max-width: 992px) {
+    .kurs-timeline::after {
+        left: 31px; /* Pomeri liniju skroz levo */
     }
+
     .kupljeni-kursevi-container1 {
-        margin-top: 60px;
+        margin-top: 30px;
     }
-    .naslovkupljeni1 {
-        font-size: 2rem;
+
+    .timeline-item {
+        width: 100%;
+        padding-left: 70px; /* Napravi mesta za liniju i kružić */
+        padding-right: 15px;
     }
-}
 
-@media (max-width: 480px) {
-    .kurs-list1 {
-        grid-template-columns: 1fr;
+    .timeline-item:nth-child(even) {
+        left: 0%; /* Svi su na levoj strani */
     }
-    
-    .kupljeni-kursevi-container1 {
-        padding: 1.5rem;
+
+    .timeline-dot {
+        left: 21px; /* Pozicioniraj kružić na levu liniju */
     }
-}
-
-/* Animations */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.03); }
-    100% { transform: scale(1); }
-}
-
-.kurs-card1 {
-    animation: fadeIn 0.6s ease-out forwards;
-    opacity: 0;
-}
-
-.kurs-card1:nth-child(1) { animation-delay: 0.1s; }
-.kurs-card1:nth-child(2) { animation-delay: 0.2s; }
-.kurs-card1:nth-child(3) { animation-delay: 0.3s; }
-.kurs-card1:nth-child(4) { animation-delay: 0.4s; }
-.kurs-card1:nth-child(5) { animation-delay: 0.5s; }
-.kurs-card1:nth-child(6) { animation-delay: 0.6s; }
-
-.kurs-link1:hover, .produzi-link1:hover {
-    animation: pulse 1s infinite;
+    .timeline-item:nth-child(even) .timeline-dot {
+        left: 21px;
+        right: auto; /* Poništi 'right' pozicioniranje sa desktopa */
+    }
 }

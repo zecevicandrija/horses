@@ -13,7 +13,7 @@ const KursLista = () => {
 
     const fetchKursevi = async () => {
         try {
-            const response = await fetch('https://horses-1.onrender.com/api/kursevi');
+            const response = await fetch('http://localhost:5000/api/kursevi');
             if (response.ok) {
                 const data = await response.json();
                 setKursevi(data);
@@ -27,7 +27,7 @@ const KursLista = () => {
 
     const fetchAverageRating = async (kursId) => {
         try {
-            const response = await fetch(`https://horses-1.onrender.com/api/ratings/average/${kursId}`);
+            const response = await fetch(`http://localhost:5000/api/ratings/average/${kursId}`);
             if (response.ok) {
                 const data = await response.json();
                 return data.averageRating;
@@ -43,7 +43,7 @@ const KursLista = () => {
 
     const fetchPopularity = async () => {
         try {
-            const response = await fetch('https://horses-1.onrender.com/api/kupovina/popularity');
+            const response = await fetch('http://localhost:5000/api/kupovina/popularity');
             if (response.ok) {
                 const data = await response.json();
                 const popularityMap = {};
@@ -61,7 +61,7 @@ const KursLista = () => {
 
     const fetchInstruktori = async () => {
         try {
-            const response = await fetch('https://horses-1.onrender.com/api/korisnici');
+            const response = await fetch('http://localhost:5000/api/korisnici');
             if (response.ok) {
                 const data = await response.json();
                 const instructors = {};

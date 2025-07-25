@@ -1,97 +1,135 @@
-/* Light Theme Styles */
+.dodaj-kurs-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    min-height: 100vh;
+    font-family: 'Montserrat', sans-serif;
+    margin-top: 30px;
+}
+
 .dodaj-kurs-form {
-  max-width: 600px;
-  margin: 7rem auto;
-  padding: 40px;
-  background-color: #f9f9f9;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+    background: #1e1e1e;
+    padding: 2.5rem;
+    border-radius: 12px;
+    border: 1px solid #333;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 700px;
+}
+
+.form-title {
+    text-align: center;
+    color: #ffa500;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    font-weight: 700;
 }
 
 .form-group {
-  margin-bottom: 20px;
+    margin-bottom: 1.5rem;
 }
 
 .form-label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
+    display: block;
+    color: #ccc;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
 }
 
 .form-input,
 .form-textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
-  color: #333;
-  font-family: "Bai Jamjuree", sans-serif;
-  transition: border-color 0.3s, box-shadow 0.3s;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background-color: #2c2c2c;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 .form-input:focus,
 .form-textarea:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+    outline: none;
+    border-color: #ffa500;
+    box-shadow: 0 0 10px rgba(255, 165, 0, 0.2);
 }
 
 .form-textarea {
-  resize: vertical;
-  min-height: 100px;
+    min-height: 120px;
+    resize: vertical;
 }
 
 .form-file-input {
-  font-size: 16px;
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.form-file-input::file-selector-button {
+    background-color: #ffa500;
+    color: #1a1a1a;
+    border: none;
+    padding: 0.6rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-right: 1rem;
+    transition: background-color 0.3s;
+}
+
+.form-file-input::file-selector-button:hover {
+    background-color: #ffc107;
+}
+
+.sekcija-input-grupa {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.remove-sekcija-btn {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    flex-shrink: 0;
+}
+
+.remove-sekcija-btn:hover {
+    background-color: #c0392b;
 }
 
 .form-submit-btn {
-  padding: 12px 20px;
-  background-color: #007bff;
-  color: #fff;
-  border: 1px solid transparent; /* Ensure border is transparent by default */
-  cursor: pointer;
-  font-size: 18px;
-  border-radius: 4px;
-  transition: background-color 0.3s, box-shadow 0.3s, border 0.3s; /* Add transition for border */
-  box-sizing: border-box; /* Include padding and border in width and height */
+    width: 100%;
+    padding: 1rem;
+    margin-top: 1rem;
+    background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+    color: #1a1a1a;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .form-submit-btn:hover {
-  background-color: transparent;
-  color: #007bff;
-  border: 1px solid #007bff;
-  box-shadow: 0 4px 14px rgba(0, 123, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 165, 0, 0.25);
 }
 
-/* Dark Theme Styles */
-.dark-theme .dodaj-kurs-form {
-  background-color: #333;
-  color: #e0e0e0;
-  border: 1px solid #444;
-}
-
-.dark-theme .form-label {
-  color: #e0e0e0;
-}
-
-.dark-theme .form-input,
-.dark-theme .form-textarea {
-  background-color: #555;
-  color: #e0e0e0;
-  border: 1px solid #666;
-}
-
-.dark-theme .form-submit-btn {
-  background-color: #ffcc00;
-  color: #000;
-}
-
-.dark-theme .form-submit-btn:hover {
-  background-color: transparent;
-  color: #ffcc00;
-  border: 1px solid #ffcc00;
-  box-shadow: 0 4px 14px rgba(255, 204, 0, 0.3);
+@media (max-width: 768px) {
+    .dodaj-kurs-form {
+        padding: 2rem;
+    }
 }

@@ -130,15 +130,11 @@
     border-radius: 0; /* Plejer nema radijus, samo kartica */
 }
 .player-wrapper iframe {
-    position: absolute;
-    /* Pravimo iframe većim od kontejnera i centriramo ga */
-    /* Ovo "kropuje" ivice (npr. plavu pozadinu) */
-    width: 200%; 
-    height: 200%;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border: none;
+    position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
 }
 .player-placeholder {
     position: absolute;
@@ -232,6 +228,110 @@
 .lesson-complete-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary-color); }
 
 
+/* =================================================================== */
+/* STIL ZA "WELCOME / EXPIRED" KARTICU               */
+/* =================================================================== */
+
+@keyframes fadeInUpCard {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* --- Osnovni stil kartice --- */
+.welcome-card {
+    background: #1c1c1c;
+    border: 1px solid #2a2a2a;
+    border-radius: 15px;
+    padding: 3rem 2rem;
+    min-height: 450px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    animation: fadeInUpCard 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.welcome-card h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    letter-spacing: 1px;
+}
+
+.welcome-card p {
+    color: #a1a1a6; /* Ista boja kao sekundarni tekst na login stranici */
+    font-size: 1.1rem;
+    max-width: 500px;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+/* Stil za dugme, nasleđen od login stranice */
+.welcome-card .btn-purchase.large {
+    padding: 15px 35px;
+    border: none;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+    color: #000;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.welcome-card .btn-purchase.large:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.5);
+}
+
+/* --- Varijacije na osnovu stanja --- */
+
+/* Stanje 1: Informativna poruka (Dobrodošli) */
+.welcome-card.state-info h2 {
+    color: #ffffff;
+}
+
+/* Stanje 2: Poziv na akciju (Kupite kurs) */
+.welcome-card.state-cta h2 {
+    color: #ffd700; /* Zlatna boja da privuče pažnju */
+}
+.welcome-card.state-cta {
+    border: 1px solid #ffd700;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
+}
+
+/* Stanje 3: Upozorenje (Pretplata istekla) */
+.welcome-card.state-expired {
+    border-color: #ff3333; /* Crveni okvir za upozorenje */
+    box-shadow: 0 0 30px rgba(255, 51, 51, 0.15);
+}
+
+.welcome-card.state-expired h2 {
+    color: #ff3333; /* Crvena boja za naslov */
+}
+
+.welcome-card.state-expired .btn-purchase.large {
+    background: linear-gradient(135deg, #ff5050 0%, #e74c3c 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(255, 51, 51, 0.3);
+}
+
+.welcome-card.state-expired .btn-purchase.large:hover {
+    box-shadow: 0 8px 25px rgba(255, 51, 51, 0.5);
+}
+
 /* --- Responzivni Dizajn --- */
 @media (max-width: 1200px) {
     .sidebar-left {
@@ -319,10 +419,5 @@
         margin: auto;
         width: 100%;
     }
-    .player-wrapper iframe {
-        width: 177.77vh; /* 100 * 16 / 9 (16:9 aspect ratio) */
-        height: 100vw * 9 / 16; /* Fallback za visinu */
-        transform: translate(-50%, -50%);
-        aspect-ratio: 2;
-    }
+    
 }

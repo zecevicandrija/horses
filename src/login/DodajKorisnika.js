@@ -16,7 +16,7 @@ const DodajKorisnika = () => {
         e.preventDefault();
         try {
             const noviKorisnik = { ime, prezime, email, sifra, uloga, telefon, adresa };
-            await axios.post('https://horses-1.onrender.com/api/korisnici', noviKorisnik);
+            await axios.post('http://localhost:5000/api/korisnici', noviKorisnik);
             setIme('');
             setPrezime('');
             setEmail('');

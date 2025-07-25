@@ -21,7 +21,7 @@ const PrikazKviza = ({ quizData }) => {
         if (user?.id && pitanja.length > 0) {
             const fetchQuizResult = async () => {
                 try {
-                    const response = await axios.get('https://horses-1.onrender.com/api/rezultati_kviza/result', {
+                    const response = await axios.get('http://localhost:5000/api/rezultati_kviza/result', {
                         params: {
                             user_id: user.id,
                             lesson_id: pitanja[0]?.lesson_id,
@@ -61,7 +61,7 @@ const PrikazKviza = ({ quizData }) => {
         setScore(calculatedScore);
 
         try {
-            const response = await axios.post("https://horses-1.onrender.com/api/rezultati_kviza/submit", {
+            const response = await axios.post("http://localhost:5000/api/rezultati_kviza/submit", {
                 user_id: user.id,
                 lesson_id: pitanja[0]?.lesson_id,
                 quiz_id: quizData[0]?.id,

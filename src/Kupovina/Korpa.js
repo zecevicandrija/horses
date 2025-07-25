@@ -30,9 +30,9 @@ const Korpa = () => {
                     if (!course.id) return null;
                     try {
                         const [ratingRes, lessonsRes, instructorRes] = await Promise.all([
-                            axios.get(`https://horses-1.onrender.com/api/ratings/average/${course.id}`),
-                            axios.get(`https://horses-1.onrender.com/api/lekcije/count/${course.id}`),
-                            axios.get(`https://horses-1.onrender.com/api/korisnici`) // Fetch all users to find instructor
+                            axios.get(`http://localhost:5000/api/ratings/average/${course.id}`),
+                            axios.get(`http://localhost:5000/api/lekcije/count/${course.id}`),
+                            axios.get(`http://localhost:5000/api/korisnici`) // Fetch all users to find instructor
                         ]);
 
                         const instructors = {};
@@ -90,7 +90,7 @@ const Korpa = () => {
 
     const applyDiscount = async () => {
         try {
-            const response = await axios.post('https://horses-1.onrender.com/api/popusti/validate', { code: discountCode });
+            const response = await axios.post('http://localhost:5000/api/popusti/validate', { code: discountCode });
             if (response.data.valid) {
                 const discountPercent = response.data.discountPercent;
                 setDiscountId(response.data.discountId);

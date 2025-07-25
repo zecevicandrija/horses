@@ -13,7 +13,7 @@ const Komentari = ({ kursId, kupioKurs }) => {
   useEffect(() => {
     const fetchKomentari = async () => {
       try {
-        const response = await axios.get(`https://horses-1.onrender.com/api/komentari/kurs/${kursId}`);
+        const response = await axios.get(`http://localhost:5000/api/komentari/kurs/${kursId}`);
         setKomentari(response.data);
       } catch (error) {
         console.error('Error fetching comments:', error);
@@ -30,7 +30,7 @@ const Komentari = ({ kursId, kupioKurs }) => {
     }
 
     try {
-      const response = await axios.post('https://horses-1.onrender.com/api/komentari', {
+      const response = await axios.post('http://localhost:5000/api/komentari', {
         korisnik_id: user.id,
         kurs_id: kursId,
         komentar: newComment,

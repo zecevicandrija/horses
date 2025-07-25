@@ -260,6 +260,7 @@
 @media (max-width: 768px) {
     .korpa-container {
         padding: 1rem 0.5rem;
+        margin-top: 70px;
     }
     
     .korpa-container h2 {
@@ -311,6 +312,14 @@
         display: block;
         width: 100%;
         margin: 0.5rem 0;
+    }
+    .korpa-purchase-button {
+        width: 90%;
+        margin: auto;
+    }
+    .discount-section button {
+        width: 60%;
+        margin: auto;
     }
 }
 

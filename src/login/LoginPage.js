@@ -1,19 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from './auth';
-import {
-  MDBBtn,
-  MDBContainer,
-  MDBCard,
-  MDBCardBody,
-  MDBCol,
-  MDBRow,
-  MDBInput,
-  MDBModal,
-  MDBModalHeader,
-  MDBModalBody,
-  MDBModalFooter
-} from 'mdb-react-ui-kit';
-import 'mdb-react-ui-kit/dist/css/mdb.min.css';
+import './LoginPage.css'
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -35,58 +22,71 @@ const LoginPage = () => {
     setShowModal(false); // Funkcija za zatvaranje modala
   };
 
-  return (
-    <MDBContainer fluid>
-      <div className="p-5 bg-image" style={{ backgroundImage: 'url(https://undovrbas.com/static/media/logoundo.05cb548dd95412eff4cb.jpg)', height: '300px' }}></div>
+ return (
+    <div className="login-page-wrapper">
+        <div className="login-container">
+            <div className="login-card-header">
+                <h2 className="login-title">Prijavljivanje</h2>
+                <div className="title-underline"></div>
+            </div>
 
-      <MDBCard className='mx-5 mb-5 p-5 shadow-5' style={{ marginTop: '-100px', background: 'hsla(0, 0%, 100%, 0.8)', backdropFilter: 'blur(30px)' }}>
-        <MDBCardBody className='p-5 text-center'>
+            <form onSubmit={handleSubmit} className="login-form-content">
+                <div className="form-input-group">
+                    <label htmlFor="email">Email Adresa</label>
+                    <div className="input-with-icon">
+                        <i className="icon-email"></i> {/* Opciono: za ikonicu */}
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="Vaš email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                    </div>
+                </div>
 
-          <h2 className="fw-bold mb-5">Login</h2>
+                <div className="form-input-group">
+                    <label htmlFor="password">Lozinka</label>
+                    <div className="input-with-icon">
+                        <i className="icon-lock"></i> {/* Opciono: za ikonicu */}
+                        <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            placeholder="Vaša lozinka"
+                            value={sifra}
+                            onChange={(e) => setSifra(e.target.value)}
+                            required
+                        />
+                    </div>
+                </div>
 
-          <form onSubmit={handleSubmit}>
-            <MDBRow>
-              <MDBCol col='12'>
-                <MDBInput
-                  wrapperClass='mb-4'
-                  label='Email'
-                  id='form1'
-                  type='email'
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </MDBCol>
-            </MDBRow>
+                <button type="submit" className="submit-login-btn">
+                    Prijavi se
+                </button>
+            </form>
+        </div>
 
-            <MDBInput
-              wrapperClass='mb-4'
-              label='Password'
-              id='form2'
-              type='password'
-              value={sifra}
-              onChange={(e) => setSifra(e.target.value)}
-              required
-            />
-
-            <MDBBtn className='w-100 mb-4' size='md' type="submit">Login</MDBBtn>
-          </form>
-
-        </MDBCardBody>
-      </MDBCard>
-
-      {/* Modal za prikaz greške */}
-      <MDBModal tabIndex='-1' show={showModal} getOpenState={(isOpen) => setShowModal(isOpen)} centered>
-        <MDBModalHeader>Zatražena prijava nije uspjela</MDBModalHeader>
-        <MDBModalBody>
-          Molimo provjerite vaše korisničke podatke i pokušajte ponovo.
-        </MDBModalBody>
-        <MDBModalFooter>
-          <MDBBtn color='secondary' onClick={closeModal}>Zatvori</MDBBtn>
-        </MDBModalFooter>
-      </MDBModal>
-    </MDBContainer>
-  );
+        {/* Potpuno redizajnirani modal za greške */}
+        {showModal && (
+            <div className="error-modal-overlay" onClick={closeModal}>
+                <div className="error-modal-content" onClick={(e) => e.stopPropagation()}>
+                    <div className="error-modal-header">
+                        <h3>Greška</h3>
+                    </div>
+                    <div className="error-modal-body">
+                        <p>Podaci za prijavu nisu ispravni. Molimo Vas da pokušate ponovo.</p>
+                    </div>
+                    <div className="error-modal-footer">
+                        <button onClick={closeModal} className="close-error-btn">Zatvori</button>
+                    </div>
+                </div>
+            </div>
+        )}
+    </div>
+);
 };
 
 export default LoginPage;

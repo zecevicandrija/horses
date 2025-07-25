@@ -112,6 +112,7 @@
 
 .kurs-actions-admin button:hover {
     color: #ffa500;
+    background-color: transparent;
 }
 
 .kurs-actions-admin .delete-button-admin:hover {

@@ -36,7 +36,7 @@ const App = () => {
           <Route path="/kursevi" element={<KursLista />} />
           <Route path="/dodajkurs"  element={<ProtectedRoute element={<DodajKurs />} allowedRoles={['admin', 'instruktor']} />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignUpPage />} />
+          {/* <Route path="/signup" element={<SignUpPage />} /> */}
           <Route path="/dodajkorisnika"  element={<ProtectedRoute element={<DodajKorisnika />} allowedRoles={['admin']} />}/>
           <Route path="/kurs/:id" element={<KursDetalj />} />
           <Route path="/lekcije"  element={<ProtectedRoute element={<Lekcije />} allowedRoles={['admin', 'instruktor']} />}/>

@@ -1,196 +1,175 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../login/api"; // Koristimo naš novi, centralizovani API klijent
+import api from "../login/api";
 import { useAuth } from "../login/auth";
 import "./KupljenKurs.css";
 
 const KupljenKurs = () => {
-  const [kupljeniKursevi, setKupljeniKursevi] = useState([]);
-  const [ratings, setRatings] = useState({});
-  const [progress, setProgress] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
+  // --- IZMENA: Restrukturiranje stanja (state) ---
+  const [sviKupljeniKursevi, setSviKupljeniKursevi] = useState([]); // Čuva listu SVIH kurseva samo za dropdown
+  const [selektovaniKursId, setSelektovaniKursId] = useState(""); // Čuva ID kursa koji je korisnik izabrao
+  const [progresPoSekcijama, setProgresPoSekcijama] = useState([]); // Čuva podatke o sekcijama i progresu
+  const [isLoading, setIsLoading] = useState(true); // Za inicijalno učitavanje liste kurseva
+  const [isLoadingSekcija, setIsLoadingSekcija] = useState(false); // NOVO: Za učitavanje sekcija nakon odabira
+
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Proveravamo da li je korisnikova pretplata aktivna na osnovu datuma iz user objekta
+  // Proveravamo da li je korisnikova pretplata aktivna (logika ostaje ista)
   const imaAktivnuPretplatu =
     user &&
     user.subscription_expires_at &&
     new Date(user.subscription_expires_at) > new Date();
 
-  const fetchData = useCallback(async () => {
-    if (user && user.id) {
-      try {
-        setIsLoading(true);
-        // Dohvatamo sve kupljene kurseve
-        const response = await api.get(`/api/kupovina/user/${user.id}`);
-        const kursevi = response.data;
-        setKupljeniKursevi(kursevi);
-
-        // Paralelno dohvatamo rejtinge i progres za sve kurseve
-        const ratingsPromises = kursevi.map((k) =>
-          api
-            .get(`/api/ratings/user/${user.id}/course/${k.id}`)
-            .catch(() => ({ data: {} }))
-        );
-        const progressPromises = kursevi.map((k) =>
-          Promise.all([
-            api.get(`/api/lekcije/course/${k.id}`),
-            api.get(`/api/kompletirane_lekcije/user/${user.id}/course/${k.id}`),
-          ]).catch(() => [])
-        );
-
-        const ratingsResults = await Promise.all(ratingsPromises);
-        const progressResults = await Promise.all(progressPromises);
-
-        const newRatings = {};
-        ratingsResults.forEach((res, index) => {
-          newRatings[kursevi[index].id] = res.data.ocena;
-        });
-
-        const newProgress = {};
-        progressResults.forEach((res, index) => {
-          if (res.length === 2) {
-            const totalLessons = res[0].data.length;
-            const completedLessons = res[1].data.length;
-            if (totalLessons > 0) {
-              newProgress[kursevi[index].id] =
-                (completedLessons / totalLessons) * 100;
-            }
-          }
-        });
-
-        setRatings(newRatings);
-        setProgress(newProgress);
-      } catch (error) {
-        console.error("Greška pri dohvatanju podataka o kursevima:", error);
-      } finally {
+  // --- IZMENA: Prvi useEffect - dobavlja samo listu kupljenih kurseva ---
+  useEffect(() => {
+    const fetchKupljeneKurseve = async () => {
+      if (user && user.id) {
+        try {
+          setIsLoading(true);
+          const response = await api.get(`/api/kupovina/user/${user.id}`);
+          setSviKupljeniKursevi(response.data);
+        } catch (error) {
+          console.error("Greška pri dohvatanju kupljenih kurseva:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
         setIsLoading(false);
       }
-    } else {
-      setIsLoading(false);
-    }
-  }, [user?.id]); //user?.id
+    };
 
+    fetchKupljeneKurseve();
+  }, [user]);
+
+  // --- NOVO: Drugi useEffect - dobavlja progres po sekcijama KADA se odabere kurs ---
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    const fetchProgresPoSekcijama = async () => {
+      // Pokreće se samo ako su odabrani i kurs i korisnik
+      if (selektovaniKursId && user && user.id) {
+        try {
+          setIsLoadingSekcija(true);
+          setProgresPoSekcijama([]); // Resetuj prethodne rezultate
+          // Pozivamo naš NOVI, moćni endpoint
+          const response = await api.get(
+            `/api/kursevi/progres-sekcija/${selektovaniKursId}/korisnik/${user.id}`
+          );
+          setProgresPoSekcijama(response.data);
+        } catch (error) {
+          console.error("Greška pri dohvatanju progresa po sekcijama:", error);
+        } finally {
+          setIsLoadingSekcija(false);
+        }
+      }
+    };
+
+    fetchProgresPoSekcijama();
+  }, [selektovaniKursId, user]);
+
 
   const handleProduziPretplatu = async (kurs) => {
-    if (!user) return alert("Morate biti prijavljeni.");
-
-    try {
-      const response = await api.post("/api/placanje/kreiraj-checkout", {
-        kurs_id: kurs.id,
-        ime: user.ime,
-        prezime: user.prezime,
-        email: user.email,
-      });
-      if (response.data.url) {
-        window.location.href = response.data.url;
-      }
-    } catch (error) {
-      console.error("Greška pri produžavanju pretplate:", error);
-      alert("Došlo je do greške, molimo pokušajte ponovo.");
-    }
+    // Ova logika ostaje ista, ali se više ne koristi u ovom prikazu
+    // Možeš je ostaviti ako ti treba za nešto drugo
   };
 
   if (isLoading) {
     return (
       <div className="kupljeni-kursevi-container1">
-        <p>Učitavanje...</p>
+        <p>Učitavanje kurseva...</p>
       </div>
     );
   }
 
-  return (
+ return (
     <div className="kupljeni-kursevi-container1">
-      <h2 className="naslovkupljeni1">Moji Kursevi</h2>
-      {!user && (
-        <p>
-          Molimo vas da se prijavite da biste videli svoje kupljene kurseve.
-        </p>
-      )}
-      {user && kupljeniKursevi.length === 0 && <p>Nema kupljenih kurseva.</p>}
+        <h2 className="naslovkupljeni1">Moj Progres</h2>
+        
+        {!user && (
+            <p>
+                Molimo vas da se prijavite da biste videli svoje kupljene kurseve.
+            </p>
+        )}
+        
+        {user && sviKupljeniKursevi.length === 0 && !isLoading && (
+            <p>Nema kupljenih kurseva.</p>
+        )}
 
-      {user && kupljeniKursevi.length > 0 && (
-        <div className="kurs-list1">
-          {kupljeniKursevi.map((kurs) => {
-            const isCourseAccessible =
-              !kurs.is_subscription || imaAktivnuPretplatu;
+        {user && sviKupljeniKursevi.length > 0 && (
+            <div className="kurs-selector-container">
+                <label htmlFor="kurs-select">Izaberite kurs za pregled progresa:</label>
+                <select 
+                    id="kurs-select"
+                    value={selektovaniKursId}
+                    onChange={(e) => setSelektovaniKursId(e.target.value)}
+                    className="kurs-select-dropdown"
+                >
+                    <option value="">-- Odaberi kurs --</option>
+                    {sviKupljeniKursevi.map((kurs) => (
+                        <option key={kurs.id} value={kurs.id}>
+                            {kurs.naziv}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        )}
 
-            return (
-              <div key={kurs.id} className="kurs-card1">
-                {kurs.slika && (
-                  <img
-                    src={kurs.slika}
-                    alt={kurs.naziv}
-                    className="kurs-slika1"
-                  />
-                )}
-                <h3>{kurs.naziv}</h3>
-                <p>{kurs.opis}</p>
+        {isLoadingSekcija && <p style={{textAlign: 'center', marginTop: '2rem'}}>Učitavanje sekcija...</p>}
 
-                {/* <div className="info-group1">
-                                    <p>Moja Ocena:</p>
-                                    <p><b>{ratings[kurs.id] ? `${ratings[kurs.id]}⭐` : 'Nema ocene'}</b></p>
-                                </div> */}
+        {!isLoadingSekcija && progresPoSekcijama.length > 0 && (
+            <div className="kurs-timeline"> {/* IZMENA: Nova klasa za timeline kontejner */}
+                {progresPoSekcijama.map((sekcija, index) => (
+                    <div key={sekcija.sekcija_id} className="timeline-item">
+                        <div className="timeline-dot"></div>
+                        <div className="timeline-content kurs-card1">
+                            <div className="card-header">
+                                <div className="timeline-step-number">{index + 1}</div>
+                                <h3>{sekcija.naziv_sekcije}</h3>
+                            </div>
+                            
+                            <div className="card-stats">
+                                <div className="stat-item">
+                                  <span className="stat-label">Ukupno Lekcija: </span>
+                                  <span className="stat-value">{sekcija.ukupan_broj_lekcija}</span>
+                                </div>
+                                <div className="stat-item">
+                                    <span className="stat-value">{sekcija.kompletiranih_lekcija}</span>
+                                </div>
+                            </div>
 
-                <div className="info-group1">
-                  <div className="progres-container">
-                    <h4>Progres</h4>
-                    <div className="progres-bar">
-                      <div
-                        className="progres-popunjeno"
-                        style={{ width: `${progress[kurs.id] || 0}%` }}
-                      ></div>
-                      <span className="procenti-start">
-                        {progress[kurs.id]
-                          ? `${Math.round(progress[kurs.id])}%`
-                          : "0%"}
-                      </span>
+                            <div className="progres-container">
+                                <div className="progres-info">
+                                    <h4>Progres</h4>
+                                    <span className="procenti-broj">
+                                        {`${sekcija.progres || 0}%`}
+                                    </span>
+                                </div>
+                                <div className="progres-bar">
+                                    <div
+                                        className="progres-popunjeno"
+                                        style={{ width: `${sekcija.progres || 0}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <div className="button-group1">
+                                <button
+                                    onClick={() => navigate(`/kurs/${selektovaniKursId}`)}
+                                    className="kurs-link1"
+                                >
+                                    Pristupi Kursu
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                  </div>
-                </div>
+                ))}
+            </div>
+        )}
 
-                <p>
-    Pristup aktivan do:{" "}
-    <strong>
-        {kurs.is_subscription 
-            ? new Date(user.subscription_expires_at).toLocaleDateString()
-            : "zauvek"}
-    </strong>
-</p>
-
-                <div className="button-group1">
-                  {isCourseAccessible ? (
-                    <button
-                      onClick={() => navigate(`/kurs/${kurs.id}`)}
-                      className="kurs-link1"
-                    >
-                      Pristupi kursu
-                    </button>
-                  ) : (
-                    <>
-                      <p className="istekla-pretplata1">
-                        Pretplata je istekla!
-                      </p>
-                      <button
-                        onClick={() => handleProduziPretplatu(kurs)}
-                        className="produzi-link1"
-                      >
-                        Produži Pretplatu
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+        {!isLoadingSekcija && selektovaniKursId && progresPoSekcijama.length === 0 && (
+            <p style={{textAlign: 'center', marginTop: '2rem'}}>Ovaj kurs nema definisane sekcije.</p>
+        )}
     </div>
-  );
+);
 };
 
 export default KupljenKurs;
