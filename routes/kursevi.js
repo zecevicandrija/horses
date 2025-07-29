@@ -88,20 +88,16 @@ router.post('/', upload.single('slika'), async (req, res) => {
 router.put('/:id', upload.single('slika'), async (req, res) => {
     try {
         const courseId = req.params.id;
-        // IZMENA: Sva polja iz req.body se čitaju direktno
         const { naziv, opis, cena, instruktor_id, is_subscription, lemon_squeezy_variant_id } = req.body;
 
         const fieldsToUpdate = {};
-        // Proveravamo svako polje pre dodavanja
         if (naziv) fieldsToUpdate.naziv = naziv;
         if (opis) fieldsToUpdate.opis = opis;
-        // Konvertujemo cenu u broj, jer FormData šalje sve kao stringove
-        if (cena) fieldsToUpdate.cena = parseFloat(cena); 
-        if (instruktor_id) fieldsToUpdate.instruktor_id = parseInt(instruktor_id, 10);
+        if (cena) fieldsToUpdate.cena = cena;
+        if (instruktor_id) fieldsToUpdate.instruktor_id = instruktor_id;
         if (is_subscription !== undefined) fieldsToUpdate.is_subscription = is_subscription;
         if (lemon_squeezy_variant_id) fieldsToUpdate.lemon_squeezy_variant_id = lemon_squeezy_variant_id;
 
-        // Logika za upload nove slike ostaje ista
         if (req.file) {
             const uniqueFileName = `slika-kursa-${Date.now()}-${req.file.originalname.replace(/\s/g, '_')}`;
             fieldsToUpdate.slika = await uploadToBunny(req.file.buffer, uniqueFileName);
@@ -120,9 +116,8 @@ router.put('/:id', upload.single('slika'), async (req, res) => {
 
         res.status(200).json({ message: 'Kurs uspešno ažuriran' });
     } catch (error) {
-        // Detaljniji ispis greške će vam pomoći da vidite šta tačno nije u redu
-        console.error('Greška prilikom ažuriranja kursa:', error); 
-        res.status(500).json({ error: 'Došlo je do greške na serveru.', details: error.message });
+        console.error('Greška prilikom ažuriranja kursa:', error);
+        res.status(500).json({ error: 'Došlo je do greške na serveru.' });
     }
 });
 
