@@ -99,6 +99,10 @@ router.post('/lemon-squeezy', async (req, res) => {
       <p style="margin:0 0 10px;"><strong>Email:</strong> ${userEmail}</p>
       <p style="margin:0;"><strong>Lozinka:</strong> <span style="color:#ff3c00;">${password}</span></p>
     </div>
+    <div style="text-align:left;background:#121212;padding:20px;border-radius:8px;border:1px solid #ff3c00;color:#fff;">
+      <p style="margin:0 0 10px;"><strong>Link:</strong> https://learningplatform1.netlify.app/login</p>
+      <p style="margin:0;"><strong>Discord:</strong> <span style="color:#ff3c00;">https://discord.gg/filipmotion</span></p>
+    </div>
     <p style="color:#888;margin-top:30px;font-size:12px;">
       Savet: Nakon prijave, možeš odmah da promeniš svoju lozinku u podešavanjima profila.
     </p>

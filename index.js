@@ -20,15 +20,15 @@ const webhooksRouter = require('./routes/webhooks');
 const sekcijeRouter = require('./routes/sekcije');
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3306;
 
 // Middleware
 app.use('/api/webhooks', webhooksRouter);
 // Definišemo listu dozvoljenih adresa
 const allowedOrigins = [
-    'http://localhost:3000'
+    'https://learningplatform1.netlify.app',
+    'https://learningplatform1.netlify.app/'
 ];
-
 app.use(cors({
     origin: function (origin, callback) {
         // Dozvoli zahteve koji nemaju origin (npr. Postman, mobilne aplikacije)

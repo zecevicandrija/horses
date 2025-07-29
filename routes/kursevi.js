@@ -53,7 +53,7 @@ router.post('/', upload.single('slika'), async (req, res) => {
     const connection = await db.getConnection();
     try {
         const { naziv, opis, instruktor_id, cena, is_subscription, lemon_squeezy_variant_id } = req.body;
-        const sekcije = req.body.sekcije || [];
+        const sekcije = req.body.sekcije ? JSON.parse(req.body.sekcije) : [];
 
         if (!naziv || !opis || !instruktor_id || cena === undefined || !req.file) {
             return res.status(400).json({ error: 'Nedostaju obavezna polja ili slika.' });
@@ -67,7 +67,7 @@ router.post('/', upload.single('slika'), async (req, res) => {
         const [kursResult] = await connection.query(kursQuery, [naziv, opis, instruktor_id, cena, slikaUrl, is_subscription || 0, lemon_squeezy_variant_id]);
         const noviKursId = kursResult.insertId;
 
-        if (sekcije.length > 0) {
+        if (Array.isArray(sekcije) && sekcije.length > 0) {
             const sekcijeQuery = 'INSERT INTO sekcije (kurs_id, naziv, redosled) VALUES ?';
             const sekcijeData = sekcije.map((naziv, index) => [noviKursId, naziv, index + 1]);
             await connection.query(sekcijeQuery, [sekcijeData]);
@@ -121,7 +121,7 @@ router.put('/:id', upload.single('slika'), async (req, res) => {
     }
 });
 
-// --- DELETE Brisanje kursa (ostaje isto) ---
+// --- DELETE Brisanje kursa ---
 router.delete('/:id', async (req, res) => {
     try {
         const courseId = req.params.id;
@@ -138,35 +138,40 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-// GET progres sekcija za korisnika
+// **--- GET PROGRES SEKCIJA (ISPRAVLJENA VERZIJA) ---**
 router.get('/progres-sekcija/:kursId/korisnik/:korisnikId', async (req, res) => {
     try {
         const { kursId, korisnikId } = req.params;
+        
+        // SQL UPIT JE ISPRAVLJEN DA UKLJUČUJE THUMBNAIL
         const query = `
             SELECT
                 s.id AS sekcija_id,
                 s.naziv AS naziv_sekcije,
                 s.redosled,
+                s.thumbnail, -- <-- ISPRAVKA 1: Dodato polje
                 (SELECT COUNT(*) FROM lekcije l WHERE l.sekcija_id = s.id) AS ukupan_broj_lekcija,
                 (SELECT COUNT(kl.id)
                  FROM kompletirane_lekcije kl
                  JOIN lekcije l2 ON kl.lekcija_id = l2.id
-                 WHERE l2.sekcija_id = s.id AND kl.korisnik_id = ?) AS kompletiranих_lekcija
+                 WHERE l2.sekcija_id = s.id AND kl.korisnik_id = ?) AS kompletiranih_lekcija
             FROM
                 sekcije s
             WHERE
                 s.kurs_id = ?
             GROUP BY
-                s.id, s.naziv, s.redosled
+                s.id, s.naziv, s.redosled, s.thumbnail -- <-- ISPRAVKA 2: Dodato polje
             ORDER BY
                 s.redosled ASC;
         `;
 
         const [sekcije] = await db.query(query, [korisnikId, kursId]);
+
+        // Preračunavanje progresa (ispravljena greška sa ćirilicom)
         const progresPoSekcijama = sekcije.map(sekcija => ({
             ...sekcija,
             progres: sekcija.ukupan_broj_lekcija > 0
-                ? Math.round((sekcija.kompletiranих_lekcija / sekcija.ukupan_broj_lekcija) * 100)
+                ? Math.round((sekcija.kompletiranih_lekcija / sekcija.ukupan_broj_lekcija) * 100)
                 : 0
         }));
 

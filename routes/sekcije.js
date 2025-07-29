@@ -4,6 +4,7 @@ const router = express.Router();
 const db = require('../db');
 
 // --- PUT /api/sekcije/order - Ažuriranje redosleda sekcija ---
+// Ova ruta ostaje nepromenjena
 router.put('/order', async (req, res) => {
     try {
         const { orderedIds } = req.body; // Očekujemo niz ID-jeva: [3, 1, 2]
@@ -27,24 +28,26 @@ router.put('/order', async (req, res) => {
     }
 });
 
-// --- PUT /api/sekcije/:id - Izmena naziva sekcije ---
+// --- PUT /api/sekcije/:id - Izmena naziva i THUMBNAIL-a sekcije ---
+// IZMENJENO: Dodata je logika za ažuriranje thumbnail-a
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { naziv } = req.body;
+        const { naziv, thumbnail } = req.body; // Dohvatamo i thumbnail
 
         if (!naziv) {
             return res.status(400).json({ error: 'Naziv sekcije je obavezan.' });
         }
 
-        const query = 'UPDATE sekcije SET naziv = ? WHERE id = ?';
-        const [result] = await db.query(query, [naziv, id]);
+        // Ažuriramo i naziv i thumbnail. Ako je thumbnail prazan string, sačuvaće se kao NULL.
+        const query = 'UPDATE sekcije SET naziv = ?, thumbnail = ? WHERE id = ?';
+        const [result] = await db.query(query, [naziv, thumbnail || null, id]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Sekcija nije pronađena.' });
         }
 
-        res.status(200).json({ message: 'Naziv sekcije uspešno ažuriran.' });
+        res.status(200).json({ message: 'Sekcija je uspešno ažurirana.' });
     } catch (error) {
         console.error('Greška pri ažuriranju sekcije:', error);
         res.status(500).json({ error: 'Greška na serveru.' });
@@ -54,8 +57,7 @@ router.put('/:id', async (req, res) => {
 
 
 // --- DELETE /api/sekcije/:id - Brisanje sekcije ---
-// Upozorenje: Ovo će obrisati sekciju. Lekcije će ostati, ali će njihov `sekcija_id` biti `NULL`
-// zbog `ON DELETE SET NULL` pravila koje smo definisali.
+// Ova ruta ostaje nepromenjena
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -75,10 +77,11 @@ router.delete('/:id', async (req, res) => {
 
 
 
-// --- POST /api/sekcije - Kreiranje nove sekcije za kurs ---
+// --- POST /api/sekcije - Kreiranje nove sekcije za kurs sa THUMBNAIL-om ---
+// IZMENJENO: Dodata je logika za dodavanje thumbnail-a
 router.post('/', async (req, res) => {
     try {
-        const { kurs_id, naziv } = req.body;
+        const { kurs_id, naziv, thumbnail } = req.body; // Dohvatamo i thumbnail
 
         if (!kurs_id || !naziv) {
             return res.status(400).json({ error: 'ID kursa i naziv sekcije su obavezni.' });
@@ -92,9 +95,10 @@ router.post('/', async (req, res) => {
 
         const noviRedosled = (maxOrderResult[0].maxRedosled || 0) + 1;
 
-        // Ubaci novu sekciju u bazu
-        const query = 'INSERT INTO sekcije (kurs_id, naziv, redosled) VALUES (?, ?, ?)';
-        const [result] = await db.query(query, [kurs_id, naziv, noviRedosled]);
+        // Ubaci novu sekciju u bazu, uključujući i thumbnail
+        // Ako je thumbnail prazan string, sačuvaće se kao NULL.
+        const query = 'INSERT INTO sekcije (kurs_id, naziv, redosled, thumbnail) VALUES (?, ?, ?, ?)';
+        const [result] = await db.query(query, [kurs_id, naziv, noviRedosled, thumbnail || null]);
 
         res.status(201).json({ message: 'Sekcija je uspešno kreirana.', insertId: result.insertId });
 
