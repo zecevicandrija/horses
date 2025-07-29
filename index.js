@@ -23,7 +23,7 @@ const app = express();
 const port = process.env.PORT || 3306;
 
 // Middleware
-app.use('/api/webhooks', webhooksRouter);
+
 // Definišemo listu dozvoljenih adresa
 const allowedOrigins = [
     'https://learningplatform1.netlify.app',
@@ -43,6 +43,7 @@ app.use(cors({
         return callback(null, true);
     }
 }));
+app.use('/api/webhooks', webhooksRouter);
 app.use(bodyParser.json());
 
 
