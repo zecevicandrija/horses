@@ -1,109 +1,197 @@
-/* Light Theme Styles */
+/* ============================================= */
+/* OSNOVNE VARIJABLE ZA BOJE            */
+/* ============================================= */
+:root {
+    --primary-color: #4a148c; /* Glavna ljubičasta boja za akcente */
+    --primary-color-hover: #6a1b9a; /* Svetlija za hover efekat */
+    --text-color-dark: #333; /* Tamna boja za tekst */
+    --text-color-light: #f8f9fa; /* Svetla boja za tekst na tamnim pozadinama */
+    --page-background: #ffffff; /* Bela pozadina stranice */
+    /* IZMENA: Pozadina kartice više nije bela, već veoma svetlo siva */
+    --background-card: #f8f9fa; 
+    --border-color: #dee2e6; /* Svetlo siva za ivice */
+    --success-color: #28a745; /* Zelena za uspeh */
+    --error-color: #dc3545; /* Crvena za greške */
+    --disabled-color: #cccccc; /* Siva za onemogućene elemente */
+}
+
+/* ============================================= */
+/* GLAVNI KONTEJNER LEKCIJE             */
+/* ============================================= */
 .lekcije-container {
-    margin-top: 20px;
+    /* IZMENA: Maksimalna širina je smanjena sa 800px na 700px */
+    max-width: 700px;
+    margin: 2rem auto;
+    padding: 2rem;
+    /* Uklonjena pozadina sa glavnog kontejnera da bi se istakla kartica */
 }
 
-.lekcije-container h3 {
-    font-size: 24px;
-    margin-bottom: 20px;
-    color: #333;
+.lekcijenaslov1 {
     text-align: center;
+    color: var(--primary-color);
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    font-weight: 700;
 }
 
+/* ============================================= */
+/* STILIZACIJA FORME (Sada je ovo glavna "kartica") */
+/* ============================================= */
 .add-lekcija-form {
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem; /* Razmak između polja */
+    padding: 2.5rem; /* Malo više paddinga za bolji izgled */
+    /* IZMENA: Postavljena boja pozadine kartice */
+    background-color: var(--background-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px; /* Zaobljenije ivice */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); /* Suptilna senka */
 }
 
-.add-lekcija-form div {
-    margin-bottom: 15px;
+/* Wrapper za svako polje (label + input) */
+.add-lekcija-form > div {
+    display: flex;
+    flex-direction: column;
 }
 
 .add-lekcija-form label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: bold;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-color-dark);
+    font-size: 0.9rem;
 }
 
-.add-lekcija-form input,
-.add-lekcija-form select,
-.add-lekcija-form textarea {
+/* Zajednički stilovi za sva polja */
+.add-lekcija-form input[type="text"],
+.add-lekcija-form textarea,
+.add-lekcija-form select {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-sizing: border-box;
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    /* IZMENA: Pozadina input polja je sada bela da bi se razlikovala od pozadine kartice */
+    background-color: #ffffff; 
+    transition: border-color 0.3s, box-shadow 0.3s;
+    color: var(--text-color-dark);
+}
+
+.add-lekcija-form input[type="text"]:focus,
+.add-lekcija-form textarea:focus,
+.add-lekcija-form select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 20, 140, 0.15);
 }
 
 .add-lekcija-form textarea {
-    height: 100px;
-    resize: vertical;
+    min-height: 120px;
+    resize: vertical; /* Dozvoli samo vertikalno menjanje veličine */
 }
 
-.add-lekcija-form button {
-    padding: 10px 20px;
-  background-color: #007bff;
-  color: #fff;
-  border: black 1px solid;
-  cursor: pointer;
-  font-size: 16px;
-  border-radius: 4px;
-  transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+.add-lekcija-form select:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
 }
 
-.add-lekcija-form button:hover {
-    background-color: transparent;
-    color: #007bff;
-    border: black 1px solid;
-    box-shadow: 0 4px 14px rgba(0, 123, 255, 0.3);
+/* Stil za poruku kada nema sekcija */
+.add-lekcija-form small {
+    margin-top: 0.5rem;
+    color: var(--error-color);
+    font-size: 0.85rem;
 }
 
+/* ============================================= */
+/* STILIZACIJA ZA UPLOAD FAJLA            */
+/* ============================================= */
+.add-lekcija-form input[type="file"] {
+    font-size: 0.95rem;
+    color: var(--text-color-dark);
+}
+
+/* Moderni način za stilizovanje dugmeta unutar file inputa */
+.add-lekcija-form input[type="file"]::file-selector-button {
+    margin-right: 1rem;
+    padding: 0.7rem 1.2rem;
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 5px;
+    color: var(--text-color-light);
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.add-lekcija-form input[type="file"]::file-selector-button:hover {
+    background-color: var(--primary-color-hover);
+}
+
+
+/* ============================================= */
+/* DUGME ZA DODAVANJE LEKCIJE           */
+/* ============================================= */
+.add-lekcija-form button[type="submit"] {
+    padding: 0.9rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-color-light);
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    align-self: flex-start; /* Da se ne rasteže preko cele širine */
+    margin-top: 1rem;
+}
+
+.add-lekcija-form button[type="submit"]:hover {
+    background-color: var(--primary-color-hover);
+    transform: translateY(-2px);
+}
+
+.add-lekcija-form button[type="submit"]:disabled {
+    background-color: var(--disabled-color);
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Poruka o učitavanju */
 .add-lekcija-form p {
-    color: #007bff;
     text-align: center;
-    margin-top: 10px;
+    color: var(--primary-color);
+    font-weight: 500;
 }
 
-/* Dark Theme Styles */
-.dark-theme .lekcije-container h3 {
-    color: #e0e0e0;
+
+/* ============================================= */
+/* RESPONSIVE DIZAJN            */
+/* ============================================= */
+@media (max-width: 768px) {
+    .lekcije-container {
+        margin: 1rem;
+        padding: 1.5rem 1rem; /* Smanjen padding na mobilnom */
+    }
+
+    .lekcijenaslov1 {
+        font-size: 2rem;
+    }
+
+    .add-lekcija-form {
+        padding: 1.5rem;
+    }
+
+    .add-lekcija-form button[type="submit"] {
+        align-self: stretch; /* Rastegni dugme preko cele širine na mobilnom */
+    }
 }
 
-.dark-theme .add-lekcija-form {
-    background-color: #333;
-    color: #e0e0e0;
-    border: 1px solid #444;
-}
+@media (max-width: 480px) {
+    .lekcije-container {
+        padding: 1rem 0.5rem;
+    }
 
-.dark-theme .add-lekcija-form label {
-    color: #e0e0e0;
-}
-
-.dark-theme .add-lekcija-form input,
-.dark-theme .add-lekcija-form select,
-.dark-theme .add-lekcija-form textarea {
-    background-color: #555;
-    color: #e0e0e0;
-    border: 1px solid #666;
-}
-
-.dark-theme .add-lekcija-form button {
-    background-color: #ffcc00;
-    color: #000;
-}
-
-.dark-theme .add-lekcija-form button:hover {
-    background-color: transparent;
-  color: #ffcc00;
-  border-color: #ffcc00;
-  box-shadow: 0 4px 14px rgba(255, 204, 0, 0.3);
-}
-
-.dark-theme .add-lekcija-form p {
-    color: #ffcc00;
+    .add-lekcija-form {
+        padding: 1.5rem 1rem;
+        gap: 1rem;
+    }
 }

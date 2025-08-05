@@ -1,13 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Pocetna.css';
-import filip2 from '../images/filip2.png'; // Pretpostavljena putanja do slike
+import rezultat5 from '../images/rezultat31.png';
+import rezultat2 from '../images/rezultati23.png'
+import rezultat3 from '../images/rezultat32.png'
+import rezultat4 from '../images/rezultati4.png'
+import { useInView } from 'react-intersection-observer';
 
-// Ikonice
 const PlayIcon = () => <i className="ri-play-circle-line"></i>;
 const ChevronIcon = ({ isOpen }) => <i className={`ri-arrow-down-s-line accordion-chevron ${isOpen ? 'open' : ''}`}></i>;
 
-// --- Komponenta za Hero sekciju ---
+// 2. KREIRAMO NOVU KOMPONENTU ZA ANIMACIJU
+const AnimateOnScroll = ({ children }) => {
+  const { ref, inView } = useInView({
+    triggerOnce: true, // Animacija će se pokrenuti samo jednom
+    threshold: 0.1,    // Okida se kada je 10% elementa vidljivo
+  });
+
+  return (
+    <div ref={ref} className={`fade-in-section ${inView ? 'is-visible' : ''}`}>
+      {children}
+    </div>
+  );
+};
+
 const HeroSection = ({ navigate }) => (
     <section className="hero-section">
         <div className="container">
@@ -15,7 +31,7 @@ const HeroSection = ({ navigate }) => (
                 Postani <span className="highlight-text">Video Editor</span> i Unovči Svoju Kreativnost
             </h1>
             <p className="hero-subtitle">
-                Naš sveobuhvatni kurs te vodi od potpunog početnika do profesionalca spremnog za rad na stvarnim projektima. Uči tempom koji ti odgovara, uz podršku mentora.
+                Jedan korak ti može potpuno promeniti <b className="bold-orange-glow">život</b> - odluka je na tebi.
             </p>
             <div className="hero-video-showcase" onClick={() => alert('Otvaranje videa...')}>
                 <img src="https://andrijatest.b-cdn.net/slika-kursa-1752491711321-motionacademybanner.png" alt="Uvodni video" className="video-thumbnail" />
@@ -25,13 +41,15 @@ const HeroSection = ({ navigate }) => (
                 </div>
             </div>
             <div className="hero-cta-group">
-                <button className="cta-button primary" onClick={() => navigate('/kursevi')}>Pogledaj Kurseve</button>
+                <p className="hero-subtitle2">
+                    Pridruži se Akademiji koja će ti <b className='bold-orange-glow'>stvarno</b> promeniti život.
+                </p>
+                <button className="cta-button primary" onClick={() => navigate('/paket')}>Pridruži se!</button>
             </div>
         </div>
     </section>
 );
 
-// --- Komponenta za "Šta dobijaš" sekciju ---
 const FeaturesSection = ({ navigate }) => {
     const features = [
         { icon: 'ri-movie-2-line', title: 'Preko 20 sati materijala', text: 'Detaljne video lekcije koje pokrivaju sve aspekte montaže.' },
@@ -42,7 +60,7 @@ const FeaturesSection = ({ navigate }) => {
     return (
         <section className="section">
             <div className="container">
-                <h2 className="section-title">Šta Sve Dobijaš Unutar Kursa?</h2>
+                <h2 className="section-title">Šta Sve Dobijaš Unutar Akademije?</h2>
                 <div className="features-grid">
                     {features.map((feature, index) => (
                         <div className="feature-card" key={index}>
@@ -52,17 +70,15 @@ const FeaturesSection = ({ navigate }) => {
                         </div>
                     ))}
                 </div>
-                <button className="cta-button secondary" onClick={() => navigate('/kursevi')}>Pridruži se generaciji</button>
+                <button className="cta-button secondary" onClick={() => navigate('/paket')}>Pridruži se</button>
             </div>
         </section>
     );
 };
 
-// --- Komponenta za Testimonijale (POBOLJŠANA VERZIJA) ---
 const TestimonialsSection = () => {
-    // Niz sada sadrži 5 polaznika kao što je traženo
     const testimonials = [
-        { name: 'Marko Marković', text: 'Kurs mi je otvorio oči! Odmah nakon završetka sam dobio prva dva klijenta. Preporuka!', image: 'https://i.pravatar.cc/150?u=marko' },
+        { name: 'Marko Nikolić', text: 'Kurs mi je otvorio oči! Odmah nakon završetka sam dobio prva dva klijenta. Preporuka!', image: 'https://i.pravatar.cc/150?u=marko' },
         { name: 'Jelena Jovanović', text: 'Najbolja investicija u moju karijeru. Mentor je sjajan, a lekcije su jasne i koncizne.', image: 'https://i.pravatar.cc/150?u=jelena' },
         { name: 'Stefan Stefanović', text: 'Mislio sam da znam osnove, ali ovaj kurs me je naučio profesionalnim tehnikama koje su mi donele posao.', image: 'https://i.pravatar.cc/150?u=stefan' },
         { name: 'Ana Anić', text: 'Podrška zajednice je neverovatna. Kad god zapnem, neko je tu da pomogne. Osećaj je sjajan!', image: 'https://i.pravatar.cc/150?u=ana' },
@@ -71,9 +87,7 @@ const TestimonialsSection = () => {
 
     const [currentIndex, setCurrentIndex] = useState(0);
 
-    // Ova funkcija pomera karusel na sledeći slajd
     const scrollNext = () => {
-        // Koristimo 'window.innerWidth' da odredimo koliko kartica može da se preskoči
         const cardsPerPage = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 768 ? 2 : 1;
         const maxIndex = testimonials.length - cardsPerPage;
         if (currentIndex < maxIndex) {
@@ -81,14 +95,12 @@ const TestimonialsSection = () => {
         }
     };
 
-    // Ova funkcija pomera karusel na prethodni slajd
     const scrollPrev = () => {
         if (currentIndex > 0) {
             setCurrentIndex(prevIndex => prevIndex - 1);
         }
     };
 
-    // Određujemo koliko kartica je vidljivo na osnovu širine ekrana za 'disabled' logiku
     const getCardsPerPage = () => {
         if (typeof window !== 'undefined') {
             if (window.innerWidth >= 1024) return 3;
@@ -135,21 +147,20 @@ const TestimonialsSection = () => {
     );
 };
 
-// --- Komponenta za rezultate članova (IZMENJENO SA DUGMETOM) ---
 const ResultsSection = ({ navigate }) => {
     const resultsImages = [
-        { id: 1, src: filip2, alt: 'Primer rezultata 1' },
-        { id: 2, src: filip2, alt: 'Primer rezultata 2' },
-        { id: 3, src: filip2, alt: 'Primer rezultata 3' },
-        { id: 4, src: filip2, alt: 'Primer rezultata 4' },
+        { id: 1, src: rezultat5, alt: 'Primer rezultata 1' },
+        { id: 2, src: rezultat2, alt: 'Primer rezultata 2' },
+        { id: 3, src: rezultat3, alt: 'Primer rezultata 3' },
+        { id: 4, src: rezultat4, alt: 'Primer rezultata 4' },
     ];
 
     return (
         <section className="section">
             <div className="container">
-                <h2 className="section-title">Pogledaj Neke od Rezultata Članova</h2>
+                <h2 className="section-title">Pogledaj Neke od Rezultata Video Editinga</h2>
                 <p className="section-subtitle">
-                    Naši polaznici ne uče samo veštine, već ih uspešno primenjuju i ostvaruju stvarne prihode.
+                    Ovo su samo jedni od <b className="bold-orange-glow">mnogih</b> rezultata video-editinga i mogućnosti koje on pruža.
                 </p>
                 <div className="results-grid">
                     {resultsImages.map(image => (
@@ -158,21 +169,31 @@ const ResultsSection = ({ navigate }) => {
                         </div>
                     ))}
                 </div>
-                <button className="cta-button primary" onClick={() => navigate('/kursevi')}>Pridruži se Odmah</button>
+                <button className="cta-button primary" onClick={() => navigate('/paket')}>Pridruži se Odmah</button>
             </div>
         </section>
     );
 };
 
-
-// --- Komponenta za FAQ ---
 const FAQSection = ({ navigate }) => {
     const faqs = [
-        { q: 'Koliko dugo imam pristup kursu?', a: 'Pristup svim materijalima je doživotan nakon kupovine. Možete se vraćati na lekcije kad god želite.' },
-        { q: 'Da li mi je potrebno prethodno iskustvo?', a: 'Ne. Kurs je dizajniran za potpune početnike i vodi vas korak po korak do naprednog nivoa.' },
-        { q: 'Koji softver mi je potreban?', a: 'Kurs se bazira na Adobe Premiere Pro. Prolazimo kroz sve što vam je potrebno da počnete sa radom.' },
-        { q: 'Da li dobijam podršku tokom kursa?', a: 'Da! Imate pristup privatnoj zajednici gde možete postavljati pitanja direktno mentoru i drugim polaznicima.' },
-    ];
+    { 
+        q: <>Kakav je <b className="bold-orange-glow">život</b> video editora?</>, 
+        a: <>Radiš <b className="bold-white">kad hoćeš, gde hoćeš</b>. Tvoj posao ti stane u ranac zajedno sa laptopom. Nema šefa nad glavom, nema kancelarije. Imaš <b className="bold-orange-glow">slobodu</b> da upravljaš svojim vremenom i pritom <b className="bold-white">zarađuješ više</b> nego neko ko je 8 sati zatvoren u kancelariji. Jedina razlika između mene i tebe je što sam ja već krenuo tim putem. Ti si sada na početku – ali to je <b className="bold-white">sve što ti treba</b>.</>
+    },
+    { 
+        q: <>Da li mi je potrebno prethodno <b className="bold-orange-glow">iskustvo</b>?</>, 
+        a: <><b className="bold-white">Ne</b>. Akademija je dizajnirana za <b className="bold-white">potpune početnike</b> i vodi vas <b className="bold-orange-glow">korak po korak</b> do uspešnog video-editora.</>
+    },
+    { 
+        q: <>Da li se akademija <b className="bold-orange-glow">ažurira</b> vremenom?</>, 
+        a: <><b className="bold-white">Da</b>, akademija se <b className="bold-orange-glow">redovno ažurira</b>! Stalno dodajemo <b className="bold-white">nove lekcije, savete i alate</b> kako bi akademija išla u korak s najnovijim trendovima u svetu editovanja.</>
+    },
+    { 
+        q: <>Da li dobijam <b className="bold-orange-glow">podršku</b> tokom akademije?</>, 
+        a: <><b className="bold-white">Da!</b> Imate <b className="bold-white">pristup privatnoj zajednici</b> gde možete postavljati pitanja <b className="bold-orange-glow">direktno mentoru</b> i drugim polaznicima.</>
+    },
+];
     const [openIndex, setOpenIndex] = useState(null);
     const toggleFAQ = index => {
         setOpenIndex(openIndex === index ? null : index);
@@ -181,7 +202,7 @@ const FAQSection = ({ navigate }) => {
     return (
         <section className="section">
             <div className="container">
-                <h2 className="section-title">Imate Pitanja? Imamo Odgovore!</h2>
+                <h2 className="section-title">Imate Pitanja? Imam Odgovore!</h2>
                 <div className="faq-accordion">
                     {faqs.map((faq, index) => (
                         <div className="accordion-item" key={index}>
@@ -195,38 +216,53 @@ const FAQSection = ({ navigate }) => {
                         </div>
                     ))}
                 </div>
-                <button className="cta-button primary" onClick={() => navigate('/kursevi')}>Kreni Sa Učenjem Odmah</button>
+                <button className="cta-button primary" onClick={() => navigate('/paket')}>Kreni Sa Učenjem Odmah</button>
             </div>
         </section>
     );
 };
 
-// --- Komponenta za Footer (IZMENJENO) ---
 const Footer = () => (
     <footer className="footer">
         <div className="container footer-content">
             <p>© {new Date().getFullYear()} MotionAcademy. Sva prava zadržana.</p>
+           
             <div className="social-links">
-                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i className="ri-instagram-line"></i></a>
-                <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i className="ri-youtube-line"></i></a>
-                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i className="ri-facebook-box-line"></i></a>
+                <a href="https://www.instagram.com/filip.motion" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i className="ri-instagram-line"></i></a>
+                <a href="https://youtube.com/@filipmotion?si=LJx1cRMc10qlkxkq" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i className="ri-youtube-line"></i></a>
             </div>
+             {/* <p className='developedby'>Developed by: zecevic144@gmail.com</p> */}
         </div>
     </footer>
 );
 
-// --- Glavna Komponenta Početne Stranice ---
 const Pocetna = () => {
     const navigate = useNavigate();
     return (
         <div className="pocetna-wrapper">
             <main className="pocetna-page">
-                <HeroSection navigate={navigate} />
-                <FeaturesSection navigate={navigate} />
-                <TestimonialsSection />
-                <ResultsSection navigate={navigate} />
-                <FAQSection navigate={navigate} />
+                {/* 3. OBMOTAVAMO SVAKU SEKCIJU */}
+                <AnimateOnScroll>
+                    <HeroSection navigate={navigate} />
+                </AnimateOnScroll>
+
+                <AnimateOnScroll>
+                    <FeaturesSection navigate={navigate} />
+                </AnimateOnScroll>
+
+                <AnimateOnScroll>
+                    <TestimonialsSection />
+                </AnimateOnScroll>
+                
+                <AnimateOnScroll>
+                    <ResultsSection navigate={navigate} />
+                </AnimateOnScroll>
+
+                <AnimateOnScroll>
+                    <FAQSection navigate={navigate} />
+                </AnimateOnScroll>
             </main>
+            {/* Footer ne mora da ima animaciju, ali možeš ga obmotati ako želiš */}
             <Footer />
         </div>
     );

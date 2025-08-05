@@ -1,14 +1,14 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../login/auth';
+import { useAuth } from '../login/auth'; // Putanja do auth.js
 import './Navbar.css';
-import undologoo from '../images/undologoo.jpg';
-import { ThemeContext } from '../komponente/ThemeContext'; // Import ThemeContext
-import motionlogo from '../images/motionacademylogo.png'
+import { ThemeContext } from '../komponente/ThemeContext';
+import motionlogo from '../images/motionacademylogo.png';
 
 const Navbar = () => {
-    const { user, logout } = useAuth();
-    const { isDarkTheme, toggleTheme } = useContext(ThemeContext); // Get the theme context
+    // --- 1. KORAK: Dohvatamo 'user' i 'loading' stanje ---
+    const { user, loading } = useAuth(); 
+    const { isDarkTheme, toggleTheme } = useContext(ThemeContext);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [cartItems, setCartItems] = useState([]);
 
@@ -18,30 +18,34 @@ const Navbar = () => {
             setCartItems(storedCart);
         };
 
-        // Update cart items on component mount
         updateCartItems();
-
-        // Listen for changes to localStorage and custom event
         window.addEventListener('storage', updateCartItems);
         window.addEventListener('cart-updated', updateCartItems);
 
-        // Clean up the event listener on component unmount
         return () => {
             window.removeEventListener('storage', updateCartItems);
             window.removeEventListener('cart-updated', updateCartItems);
         };
-    }, []); // Empty dependency list to run only once
+    }, []);
 
     const handleMenuToggle = () => {
         setIsMenuOpen(!isMenuOpen);
     };
 
-    const cartItemCount = cartItems.length; // Ensure it's a number
+    const cartItemCount = cartItems.length;
 
     const closeMobileMenu = () => {
-    setIsMenuOpen(false);
-};
+        setIsMenuOpen(false);
+    };
 
+    // --- 2. KORAK: Uslov za prikazivanje navbara ---
+    // Ako se sesija još uvek proverava (loading === true) ili ako korisnik nije ulogovan (user === null),
+    // komponenta ne vraća ništa (vraća null).
+    if (loading || !user) {
+        return null;
+    }
+
+    // Ako provera prođe (korisnik je ulogovan), prikazuje se ostatak komponente.
     return (
         <nav className={`navbar ${isDarkTheme ? 'dark' : ''}`}>
             <div className="navbar-container">
@@ -56,32 +60,18 @@ const Navbar = () => {
                         <li className="navbar-item">
                             <Link to="/" className="navbar-link" onClick={closeMobileMenu}>POČETNA</Link>
                         </li>
-                        <li className="navbar-item">
-                            <Link to="/kursevi" className="navbar-link" onClick={closeMobileMenu}>KURSEVI</Link>
-                        </li>
                         {/* <li className="navbar-item">
-                            <Link to="/o-nama" className="navbar-link">O NAMA</Link>
-                        </li>
-                        <li className="navbar-item">
-                            <Link to="/usluge" className="navbar-link">USLUGE</Link>
-                        </li>
-                        <li className="navbar-item">
-                            <Link to="/kontakt" className="navbar-link">KONTAKT</Link>
+                            <Link to="/kurs/1" className="navbar-link" onClick={closeMobileMenu}>LEKCIJE</Link>
                         </li> */}
-
-                        {!user ? (
-                            <>
-                                <li className="navbar-item auth-item">
-                                    <Link to="/login" className="navbar-link" onClick={closeMobileMenu}>LOGIN</Link>
-                                </li>
-                                {/* <li className="navbar-item auth-item">
-                                    <Link to="/signup" className="navbar-link register-link" onClick={closeMobileMenu}>REGISTRACIJA</Link>
-                                </li> */}
-                            </>
-                        ) : (
+                        
+                        {/* Sada više ne moramo da proveravamo da li korisnik postoji ovde, 
+                          jer se cela komponenta neće prikazati ako nije ulogovan.
+                          Ali radi sigurnosti, ostavićemo kod kakav jeste.
+                        */}
+                        {user && (
                             <>
                                 <li className="navbar-item">
-                                    <Link to="/kupljenkurs" className="navbar-link" onClick={closeMobileMenu}>MOJI KURSEVI</Link>
+                                    <Link to="/kupljenkurs" className="navbar-link" onClick={closeMobileMenu}>LEKCIJE</Link>
                                 </li>
                                 <li className="navbar-item">
                                     <Link to="/korpa" className="navbar-link cart-icon" onClick={closeMobileMenu}>
@@ -106,16 +96,6 @@ const Navbar = () => {
                                 )}
                             </>
                         )}
-
-                        {/* <li className="navbar-item theme-item">
-                            <button className="theme-toggle-button" onClick={toggleTheme}>
-                                {isDarkTheme ? (
-                                    <i className="ri-moon-line"></i>
-                                ) : (
-                                    <i className="ri-sun-line"></i>
-                                )}
-                            </button>
-                        </li> */}
                     </ul>
                 </div>
 

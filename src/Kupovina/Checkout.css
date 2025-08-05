@@ -131,7 +131,7 @@
     text-transform: uppercase;
     letter-spacing: 1px;
     box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
-    font-family: "Bai Jamjuree", sans-serif;
+    font-family: "Josefin Sans", sans-serif;
 }
 
 .checkout-form button:hover {

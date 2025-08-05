@@ -1,0 +1,210 @@
+/* ---  variables & reset  --- */
+:root {
+  --orange7: #ff4500;
+  --orange-light7: #ff6a34;
+  --glass-bg7: rgba(255, 255, 255, 0.05);
+  --glass-border7: rgba(255, 255, 255, 0.1);
+  --glow7: 0 0 20px var(--orange7);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+
+/* ---  layout  --- */
+.container7 {
+  padding: 4rem 1rem;
+  max-width: 1200px;
+  margin: auto;
+}
+
+.naslov7 {
+  text-align: center;
+  font-size: clamp(2rem, 5vw, 3rem);
+  margin-bottom: 3rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #f0f0f0;
+  text-shadow: var(--glow7);
+  position: relative;
+  border-bottom: 2px solid #ffa500;
+  width: 40%;
+  margin: auto;
+  margin-bottom: 4rem;
+}
+
+.naslov7::after {
+    content: '';
+    position: absolute;
+    width: 40%;
+    height: 4px;
+    background: var(--orange7);
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 2px;
+    bottom: -20px;
+}
+
+.cards7 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2.5rem;
+  perspective: 1000px;
+}
+
+/* ---  glass-morphic card  --- */
+.card7 {
+  position: relative;
+  background: var(--glass-bg7);
+  border: 1px solid var(--glass-border7);
+  border-radius: 24px;
+  padding: 2.2rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  transition: transform 0.4s cubic-bezier(.17,.89,.32,1.28),
+              box-shadow 0.4s;
+}
+
+.card7:hover {
+  box-shadow: var(--glow7), 0 15px 40px rgba(0,0,0,.4);
+}
+
+/* ---  badge  --- */
+.badge7 {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  background: linear-gradient(135deg, var(--orange7), var(--orange-light7));
+  color: #000;
+  font-weight: 700;
+  padding: 0.5rem 1.4rem;
+  border-radius: 50px;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: var(--glow7);
+}
+
+/* ---  image wrapper with animated glow  --- */
+.imgWrap7 {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.cardImg7 {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s;
+}
+
+.card7:hover .cardImg7 {
+  transform: scale(1.08);
+}
+
+.imgGlow7 {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(45deg,
+              transparent 30%,
+              rgba(255,69,0,.25) 50%,
+              transparent 70%);
+  animation: sweep 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ---  floating particles  --- */
+.particle7 {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--orange7);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+  animation: float 4s ease-in-out infinite;
+  animation-delay: calc(var(--delay) * 1s);
+  transform: translate3d(0,0,0) rotateX(var(--rx)) rotateY(var(--ry));
+}
+
+@keyframes float {
+  0%,100% { transform: translate3d(0,0,0) scale(0); opacity: 0; }
+  50%     { transform: translate3d(0,-60px,0) scale(1); opacity: 1; }
+}
+
+/* ---  price  --- */
+.price7 {
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  font-weight: 700;
+  color: var(--orange7);
+  text-shadow: var(--glow7);
+  margin-bottom: 0.4rem;
+}
+
+.period7 {
+  font-size: 1rem;
+  color: #aaa;
+}
+
+/* ---  features  --- */
+.features7 {
+  list-style: none;
+  padding: 0 0 1.2rem;
+  margin: 0;
+  flex: 1;
+}
+
+.feature7 {
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+.check7 {
+  color: var(--orange7);
+  font-weight: 900;
+  font-size: 1.2rem;
+}
+
+/* ---  button  --- */
+.btn7 {
+  margin-top: auto;
+  width: 100%;
+  background: linear-gradient(135deg, var(--orange7), var(--orange-light7));
+  border: none;
+  padding: 1rem 1.5rem;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #000;
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.btn7:hover {
+  transform: scale(1.05);
+  box-shadow: var(--glow7);
+}
+
+/* ---  responsiveness  --- */
+@media (max-width: 480px) {
+  .card7 { padding: 1.5rem 1rem; }
+  .cardImg7 { height: 140px; }
+}

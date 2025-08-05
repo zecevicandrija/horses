@@ -113,7 +113,7 @@ const Instruktor = () => {
                                 <img src={kurs.slika} alt={kurs.naziv} className="kurs-slika-admin" />
                                 <div className="kurs-info-admin">
                                     <h3>{kurs.naziv}</h3>
-                                    <p className="kurs-cena-admin">{kurs.cena} RSD</p>
+                                    <p className="kurs-cena-admin">{kurs.cena} €</p>
                                 </div>
                                 <div className="kurs-actions-admin">
                                     <button onClick={() => openEditCourseModal(kurs)} title="Izmeni Kurs"><i className="ri-edit-line"></i></button>
@@ -133,7 +133,6 @@ const Instruktor = () => {
                 </div>
             </div>
 
-            {/* --- Modali --- */}
 
             {/* Edit Course Modal */}
             {isEditCourseModalOpen && editingCourse && (

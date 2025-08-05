@@ -1,24 +1,22 @@
 // src/components/KursDetalj.js
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../login/api.js';
 import { useAuth } from '../login/auth.js';
-import ReactStars from 'react-stars';
 import './KursDetalj.css';
 import Komentari from '../Instruktori/Komentari.js';
 import PrikazKviza from './PrikazKviza.js';
 import Editor from '@monaco-editor/react';
-import ReactPlayer from 'react-player';
 import Hls from 'hls.js';
 
 if (typeof window !== "undefined" && !window.Hls) {
   window.Hls = Hls;
 }
 
-const PlayIcon = () => <i className="icon-play"></i>;
-const AssignmentIcon = () => <i className="icon-assignment"></i>;
-const HeartIcon = ({ filled }) => <i className={filled ? "icon-heart-filled" : "icon-heart"}></i>;
-
+// Preporuka: Zamenite klase sa Remix Icon klasama radi konzistentnosti
+const PlayIcon = () => <i className="ri-play-circle-line"></i>;
+const AssignmentIcon = () => <i className="ri-file-text-line"></i>;
+const HeartIcon = ({ filled }) => <i className={filled ? "ri-heart-fill" : "ri-heart-line"}></i>;
 
 const KursDetalj = () => {
     const { id } = useParams();
@@ -26,12 +24,12 @@ const KursDetalj = () => {
     const { user } = useAuth();
     const [kurs, setKurs] = useState(null);
     const [lekcije, setLekcije] = useState([]);
-    // NOVO: Dodajemo state za sekcije
     const [sekcije, setSekcije] = useState([]);
     const [otvorenaLekcija, setOtvorenaLekcija] = useState(null);
     const [wishlisted, setWishlisted] = useState(false);
     const [kupioKurs, setKupioKurs] = useState(false);
-    const [rating, setRating] = useState(0);
+    // UKLONJENO: Stanje za rating više nije potrebno
+    // const [rating, setRating] = useState(0);
     const [completedLessons, setCompletedLessons] = useState(new Set());
     const [quiz, setQuiz] = useState([]);
     const [code, setCode] = useState('// Unesite svoj kod ovde');
@@ -39,49 +37,46 @@ const KursDetalj = () => {
     const [showEditor, setShowEditor] = useState(false);
     const [savedCodes, setSavedCodes] = useState({});
     const [reviewFeedback, setReviewFeedback] = useState(null);
-    // IZMENA: Active section sada čuva ID sekcije (broj), a ne naziv
     const [activeSection, setActiveSection] = useState(null);
     const [currentStreamUrl, setCurrentStreamUrl] = useState('');
+    const [searchParams] = useSearchParams();
 
     const imaAktivnuPretplatu = user && user.subscription_expires_at && new Date(user.subscription_expires_at) > new Date();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Paralelno dobavljanje podataka radi bržeg učitavanja
                 const [kursResponse, lekcijeResponse, sekcijeResponse] = await Promise.all([
                     api.get(`/api/kursevi/${id}`),
                     api.get(`/api/lekcije/course/${id}`),
-                    // NOVO: Pozivamo naš novi endpoint za dobavljanje sekcija
                     api.get(`/api/lekcije/sections/${id}`)
                 ]);
 
                 setKurs(kursResponse.data);
                 setLekcije(lekcijeResponse.data);
-                // NOVO: Postavljamo sekcije u state
                 setSekcije(sekcijeResponse.data);
 
-                // ISPRAVLJENO: Postavljanje prve sekcije kao aktivne na osnovu novih podataka
-                if (sekcijeResponse.data.length > 0) {
-                    // Postavljamo ID prve sekcije kao aktivan
-                    setActiveSection(sekcijeResponse.data[0].id);
-                }
+                // === NOVA, POBOLJŠANA LOGIKA ===
+            const sekcijaIdFromUrl = searchParams.get('sekcija'); // Čitamo ID iz "?sekcija=..."
+
+            if (sekcijaIdFromUrl) {
+                // Ako postoji ID u URL-u, otvaramo tu sekciju
+                // (pretvaramo u broj za svaki slučaj)
+                setActiveSection(parseInt(sekcijaIdFromUrl, 10));
+            } else if (sekcijeResponse.data.length > 0) {
+                // Ako ne postoji, otvaramo prvu sekciju kao i do sada
+                setActiveSection(sekcijeResponse.data[0].id);
+            }
 
                 if (user) {
                     const kupovinaResponse = await api.get(`/api/kupovina/user/${user.id}`);
-                    const purchased = kupovinaResponse.data.find(c => c.id === +id);
-                    setKupioKurs(!!purchased);
+                    const purchased = kupovinaResponse.data.some(c => c.id === parseInt(id));
+                    setKupioKurs(purchased);
 
-                    if (purchased) {
-                        try {
-                            const ratingResponse = await api.get(`/api/ratings/user/${user.id}/course/${id}`);
-                            setRating(ratingResponse.data.ocena || 0);
-                        } catch { /* nema ocene */ }
-                    }
+                    // UKLONJENO: Dobavljanje rating-a više nije potrebno
 
-                    // Logika za kompletirane lekcije i wishlist ostaje ista
                     const completedResponse = await api.get(`/api/kompletirane_lekcije/user/${user.id}/course/${id}`);
-                    setCompletedLessons(new Set(completedResponse.data)); // Backend sada vraća samo niz ID-jeva
+                    setCompletedLessons(new Set(completedResponse.data));
 
                     const wishlistResponse = await api.get(`/api/wishlist/check`, {
                         params: { korisnik_id: user.id, kurs_id: id }
@@ -93,11 +88,21 @@ const KursDetalj = () => {
             }
         };
         fetchData();
-    }, [id, user]);
+    }, [id, user, searchParams]);
 
+
+    // DODATO: Računanje ukupnog progresa celog kursa
+    const totalProgress = useMemo(() => {
+        if (lekcije.length === 0) return 0;
+        const progress = (completedLessons.size / lekcije.length) * 100;
+        return Math.round(progress);
+    }, [completedLessons, lekcije]);
+
+
+    // UKLONJENO: handleRatingSubmit funkcija više nije potrebna
 
     const handleLessonClick = async (lekcijaId) => {
-        if (!kupioKurs && !isCourseAccessible) return;
+        if (!isCourseAccessible) return;
         const lekcija = lekcije.find(l => l.id === lekcijaId);
         if (!lekcija) return;
     
@@ -136,17 +141,16 @@ const KursDetalj = () => {
     
         try {
             if (isCompleted) {
-                // Logika za brisanje kompletirane lekcije (ako je potrebno)
-                // const response = await api.delete(`/api/kompletirane_lekcije/user/${user.id}/lesson/${lessonId}`);
-                // if (response.status === 200) {
-                //     updatedCompletedLessons.delete(lessonId);
-                // }
-                console.log("Logika za un-check još nije implementirana na backendu.");
-                // Za sada, samo vizuelno uklanjamo
-                updatedCompletedLessons.delete(lessonId);
+                await api.delete('/api/kompletirane_lekcije', {
+                data: {
+                    korisnik_id: user.id,
+                    lekcija_id: lessonId
+                }
+            });
+            // Ako je API poziv uspeo, uklanjamo lekciju iz lokalnog stanja
+            updatedCompletedLessons.delete(lessonId);
     
             } else {
-                // Dodavanje nove kompletirane lekcije
                 await api.post('/api/kompletirane_lekcije', {
                     korisnik_id: user.id,
                     kurs_id: id,
@@ -157,13 +161,9 @@ const KursDetalj = () => {
             setCompletedLessons(updatedCompletedLessons);
         } catch (err) {
             console.error("Greška pri ažuriranju statusa lekcije:", err);
-            // Vraćamo checkbox u prethodno stanje ako je došlo do greške
         }
     };
     
-
-
-    // ... Ostatak funkcija (handleWishlistToggle, handleAddToCart, itd.) ostaje nepromenjen ...
     const fetchQuiz = async (lessonId) => {
         try {
             const { data } = await api.get(`/api/kvizovi/lesson/${lessonId}`);
@@ -173,9 +173,10 @@ const KursDetalj = () => {
             }));
             setQuiz(parsed);
         } catch (e) {
-            setQuiz([]); // Resetuj kviz ako nema pitanja ili dođe do greške
+            setQuiz([]);
         }
     };
+    
     const determineLanguage = (assignment) => {
         const text = assignment.toLowerCase();
         if (text.includes('react') || text.includes('jsx')) setLanguage('javascript');
@@ -186,12 +187,9 @@ const KursDetalj = () => {
 
     const getDefaultCode = (lang) => {
         switch (lang) {
-            case 'html':
-                return '<!DOCTYPE html>\n<html>\n<head>\n  <title>Page Title</title>\n</head>\n<body>\n\n</body>\n</html>';
-            case 'css':
-                return '/* Add your CSS here */\nbody {\n  margin: 0;\n  padding: 0;\n}';
-            default:
-                return '// Unesite svoj JavaScript kod ovde';
+            case 'html': return '<!DOCTYPE html>\n<html>\n<head>\n  <title>Page Title</title>\n</head>\n<body>\n\n</body>\n</html>';
+            case 'css': return '/* Add your CSS here */\nbody {\n  margin: 0;\n  padding: 0;\n}';
+            default: return '// Unesite svoj JavaScript kod ovde';
         }
     };
 
@@ -235,16 +233,6 @@ const KursDetalj = () => {
         navigate('/korpa');
     };
 
-    const handleRatingSubmit = async () => {
-        if (!user || !kupioKurs || !rating) return;
-        try {
-            await api.post('/api/ratings', { korisnik_id: user.id, kurs_id: id, ocena: rating });
-            alert('Uspešno ste ocenili kurs!');
-        } catch {
-            alert('Došlo je do greške pri ocenjivanju');
-        }
-    };
-
     const handleReviewCode = async () => {
         try {
             const { data } = await api.post('/api/lekcije/deepseek-review', { code, language });
@@ -273,16 +261,9 @@ const KursDetalj = () => {
         }
     };
 
-    // UKLONJENO: Stara, neispravna logika za grupisanje
-    // const groupedLessons = lekcije.reduce((acc, l) => {
-    //  (acc[l.section] ||= []).push(l);
-    //  return acc;
-    // }, {});
-
     if (!kurs) return <div className="loading">Učitavanje...</div>;
 
     const isCourseAccessible = kupioKurs && (!kurs.is_subscription || imaAktivnuPretplatu);
-
 
     return (
         <div className="course-detail-page">
@@ -290,9 +271,6 @@ const KursDetalj = () => {
                 <div className="header-content">
                     <h1 className="course-title-header">{kurs.naziv}</h1>
                     <p className="course-subtitle">{kurs.opis}</p>
-                    <p className="course-meta-header">
-                        Kreirano: {new Date(kurs.created_at).toLocaleDateString()}
-                    </p>
                 </div>
             </div>
     
@@ -300,40 +278,36 @@ const KursDetalj = () => {
                 <aside className="sidebar-left">
                     <div className="sidebar-sticky-content">
                         <div className="course-actions-card">
-                            {/* ... Ostatak JSX-a za akcije ostaje isti ... */}
                             {!kupioKurs ? (
-                                    <>
-                                        <div className="price-tag">{kurs.cena} RSD</div>
-                                        <button onClick={handleAddToCart} className="btn btn-purchase">Dodaj u korpu</button>
-                                        <button onClick={handleWishlistToggle} className="btn btn-wishlist">
-                                            <HeartIcon filled={wishlisted} />
-                                            {wishlisted ? 'Ukloni iz liste želja' : 'Dodaj u listu želja'}
-                                        </button>
-                                    </>
-                                ) : (
-                                    <div className="rating-section">
-                                        <h4>Ocenite kurs</h4>
-                                        <ReactStars
-                                            count={5}
-                                            value={rating}
-                                            onChange={setRating}
-                                            size={30}
-                                            color2="#ffd700"
-                                        />
-                                        <button
-                                            onClick={handleRatingSubmit}
-                                            className="btn btn-primary"
-                                            disabled={!rating}
-                                        >
-                                            Pošalji ocenu
-                                        </button>
+                                <>
+                                    <div className="price-tag">{kurs.cena} €</div>
+                                    <button onClick={handleAddToCart} className="btn btn-purchase">Dodaj u korpu</button>
+                                </>
+                            ) : (
+                                // IZMENJENO: Umesto rating sekcije, prikazujemo progress bar widget
+                                <div className="course-progress-widget">
+                                    <h4>Ukupan Progres</h4>
+                                    <div className="progres-container">
+                                        <div className="progres-info">
+                                            <span>Završeno lekcija</span>
+                                            <span className="procenti-broj">
+                                                {`${completedLessons.size} / ${lekcije.length}`}
+                                            </span>
+                                        </div>
+                                        <div className="progres-bar">
+                                            <div
+                                                className="progres-popunjeno"
+                                                style={{ width: `${totalProgress}%` }}
+                                            ></div>
+                                        </div>
                                     </div>
-                                )}
+                                    <div className="procenti-broj-large">{`${totalProgress}%`}</div>
+                                </div>
+                            )}
                         </div>
     
                         <div className="lessons-list-card">
-                            <h4>Sadržaj kursa</h4>
-                            {/* ISPRAVLJENO: Nova logika za prikaz sekcija i lekcija */}
+                            <h4>Sadržaj</h4>
                             {sekcije.map(sekcija => (
                                 <div key={sekcija.id} className="lesson-section">
                                     <h5
@@ -358,16 +332,18 @@ const KursDetalj = () => {
                                                             <span>{lekcija.title}</span>
                                                         </div>
                                                         {isCourseAccessible && (
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={completedLessons.has(lekcija.id)}
-                                                                onChange={e => {
-                                                                    e.stopPropagation();
-                                                                    handleCompletionToggle(lekcija.id);
-                                                                }}
-                                                                title="Označi kao završeno"
-                                                                className="lesson-complete-checkbox"
-                                                            />
+                                                            <label className="custom-checkbox-wrapper" title="Označi kao završeno">
+            <input
+                type="checkbox"
+                checked={completedLessons.has(lekcija.id)}
+                onChange={e => {
+                    e.stopPropagation();
+                    handleCompletionToggle(lekcija.id);
+                }}
+                className="lesson-complete-checkbox" 
+            />
+            <span className="custom-checkmark"></span>
+        </label>
                                                         )}
                                                     </li>
                                                 ))}
@@ -380,98 +356,95 @@ const KursDetalj = () => {
                 </aside>
     
                 <div className="main-content-right">
-                    {/* ... Ostatak JSX-a za glavni sadržaj ostaje isti ... */}
                     {!kupioKurs ? (
-                                 <div className="welcome-card state-cta">
-                                     <h2>Kupite kurs da biste pristupili sadržaju</h2>
-                                     <p>Dodajte ga u korpu i započnite učenje danas!</p>
-                                     <button onClick={handleAddToCart} className="btn-purchase large">Dodaj u korpu</button>
-                                 </div>
-                             ) : !isCourseAccessible ? (
-                                <div className="welcome-card state-expired">
-                                    <h2>Vaša pretplata je istekla!</h2>
-                                    <p>Da biste nastavili sa pristupom ovom kursu, molimo Vas da produžite svoju pretplatu.</p>
-                                    <button onClick={handleProduziPretplatu} className="btn-purchase large">Produži Pretplatu</button>
-                                </div>
-                            ) : !otvorenaLekcija ? (
-                                <div className="welcome-card state-info">
-                                    <h2>Dobrodošli nazad!</h2>
-                                    <p>Izaberite lekciju iz menija sa leve strane da biste nastavili sa učenjem.</p>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="content-display-area">
-                                        <div className="lesson-player-card">
-                                            <h3>{otvorenaLekcija.title}</h3>
-                                            {otvorenaLekcija.video_url && (
-                                                <div className='player-wrapper'>
-                                                    {!currentStreamUrl && <div className="player-placeholder">Učitavanje videa...</div>}
-                                                    {currentStreamUrl === 'error' && <div className="player-placeholder">Greška pri učitavanju videa.</div>}
-                                                    {currentStreamUrl && currentStreamUrl !== 'error' && (
-                                                        <iframe
-                                                            src={currentStreamUrl}
-                                                            allowtransparency="true"
-                                                            loading="lazy"
-                                                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                                                            allowFullScreen={true}
-                                                            style={{
-                                                                position: 'absolute',
-                                                                top: 0,
-                                                                left: 0,
-                                                                width: '100%',
-                                                                height: '100%',
-                                                                border: 'none',
-                                                            }}
-                                                        ></iframe>
-                                                    )}
-                                                </div>
+                        <div className="welcome-card state-cta">
+                            <h2>Učlanite se da biste pristupili sadržaju.</h2>
+                            <p>Dodajte ga u korpu i započnite učenje danas!</p>
+                            <button onClick={handleAddToCart} className="btn-purchase large">Dodaj u korpu</button>
+                        </div>
+                    ) : !isCourseAccessible ? (
+                        <div className="welcome-card state-expired">
+                            <h2>Vaša pretplata je istekla!</h2>
+                            <p>Da biste nastavili sa pristupom ovom kursu, molimo Vas da produžite svoju pretplatu.</p>
+                            <button onClick={handleProduziPretplatu} className="btn-purchase large">Produži Pretplatu</button>
+                        </div>
+                    ) : !otvorenaLekcija ? (
+                        <div className="welcome-card state-info">
+                            <h2>Dobro došli nazad!</h2>
+                            <p>Izaberite lekciju iz sadržaja da biste nastavili sa učenjem.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="content-display-area">
+                                <div className="lesson-player-card">
+                                    <h3>{otvorenaLekcija.title}</h3>
+                                    {otvorenaLekcija.video_url && (
+                                        <div className='player-wrapper'>
+                                            {!currentStreamUrl && <div className="player-placeholder">Učitavanje videa...</div>}
+                                            {currentStreamUrl === 'error' && <div className="player-placeholder">Greška pri učitavanju videa.</div>}
+                                            {currentStreamUrl && currentStreamUrl !== 'error' && (
+                                                <iframe
+                                                    src={currentStreamUrl}
+                                                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                                                    allowFullScreen={true}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: 0,
+                                                        left: 0,
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        border: 'none',
+                                                    }}
+                                                ></iframe>
                                             )}
-                                            <p className="lesson-content-text">{otvorenaLekcija.content}</p>
                                         </div>
-                                    </div>
+                                    )}
+                                    <p className="lesson-content-text">{otvorenaLekcija.content}</p>
+                                </div>
+                            </div>
 
-                                    {otvorenaLekcija.assignment && (
-                                        <div className="assignment-card">
-                                            <h3>Zadatak</h3>
-                                            <p className="assignment-text">{otvorenaLekcija.assignment}</p>
-                                            {showEditor && (
-                                                <div className="code-editor-wrapper">
-                                                    <div className="editor-header">
-                                                        <h4>Code Editor</h4>
-                                                        <select value={language} onChange={e => setLanguage(e.target.value)}>
-                                                            <option value="javascript">JavaScript</option>
-                                                            <option value="html">HTML</option>
-                                                            <option value="css">CSS</option>
-                                                        </select>
-                                                    </div>
-                                                    <Editor
-                                                        height="400px"
-                                                        language={language}
-                                                        theme="vs-dark"
-                                                        value={code}
-                                                        onChange={setCode}
-                                                        options={{ minimap: { enabled: false }, fontSize: 14, wordWrap: 'on' }}
-                                                    />
-                                                    <div className="editor-actions">
-                                                        <button className="btn btn-secondary" onClick={handleSaveCode}>Sačuvaj Kod</button>
-                                                        <button className="btn btn-primary" onClick={handleReviewCode}>Proveri Kod (AI)</button>
-                                                    </div>
-                                                    {reviewFeedback && (
-                                                        <div className="ai-feedback">
-                                                            <h4>AI Povratna Informacija:</h4>
-                                                            <pre>{reviewFeedback.message}</pre>
-                                                        </div>
-                                                    )}
+                            {otvorenaLekcija.assignment && (
+                                <div className="assignment-card">
+                                    <h3>Zadatak</h3>
+                                    <p className="assignment-text">{otvorenaLekcija.assignment}</p>
+                                    {showEditor && (
+                                        <div className="code-editor-wrapper">
+                                            <div className="editor-header">
+                                                <h4>Code Editor</h4>
+                                                <select value={language} onChange={e => setLanguage(e.target.value)}>
+                                                    <option value="javascript">JavaScript</option>
+                                                    <option value="html">HTML</option>
+                                                    <option value="css">CSS</option>
+                                                </select>
+                                            </div>
+                                            <Editor
+                                                height="400px"
+                                                language={language}
+                                                theme="vs-dark"
+                                                value={code}
+                                                onChange={setCode}
+                                                options={{ minimap: { enabled: false }, fontSize: 14, wordWrap: 'on' }}
+                                            />
+                                            <div className="editor-actions">
+                                                <button className="btn btn-secondary" onClick={handleSaveCode}>Sačuvaj Kod</button>
+                                                <button className="btn btn-primary" onClick={handleReviewCode}>Proveri Kod (AI)</button>
+                                            </div>
+                                            {reviewFeedback && (
+                                                <div className="ai-feedback">
+                                                    <h4>AI Povratna Informacija:</h4>
+                                                    <pre>{reviewFeedback.message}</pre>
                                                 </div>
                                             )}
                                         </div>
                                     )}
-                                    
-                                    {quiz && quiz.length > 0 && (
-                                        <PrikazKviza quizData={quiz} />
-                                    )}
-                                </>
+                                </div>
                             )}
+                            
+                            {quiz && quiz.length > 0 && (
+                                <PrikazKviza quizData={quiz} />
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
         </div>

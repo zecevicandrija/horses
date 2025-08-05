@@ -22,6 +22,7 @@ import Kviz from './Instruktori/Kviz';
 import Checkout from './Kupovina/Checkout';
 import EditKursa from './Instruktori/EditKursa';
 import Statistika from './Instruktori/Statistika';
+import Paket from './komponente/Paket';
 
 import './App.css';
 
@@ -48,10 +49,11 @@ const App = () => {
             element={<ProtectedRoute element={<Instruktor />} allowedRoles={['admin', 'instruktor']} />}
           />
           <Route path="/korpa" element={<Korpa />} />
-          <Route path='/napravikviz' element={<Kviz />} />
+          <Route path="/napravikviz" element={<ProtectedRoute element={<Kviz />} allowedRoles={['admin', 'instruktor']} />} />
           <Route path="/checkout" element={<Checkout />} />
-          <Route path="/edit-kurs/:kursId" element={<EditKursa />} />
-          <Route path="/statistika/:kursId" element={<Statistika />} />
+          <Route path="/edit-kurs/:kursId" element={<EditKursa />} allowedRoles={['admin', 'instruktor']}/>
+          <Route path="/statistika/:kursId" element={<Statistika />} allowedRoles={['admin', 'instruktor']}/>
+          <Route path="/paket" element={<Paket />} />
           <Route path="/nevazeca" element={<Nepostojeca />} />
         </Routes>
         </ThemeProvider>

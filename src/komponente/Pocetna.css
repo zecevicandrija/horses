@@ -11,6 +11,21 @@
     --border-boja-jaca: rgba(255, 255, 255, 0.2);
 }
 
+/* NOVI, ISPRAVLJENI KOD ZA ANIMACIJE */
+.fade-in-section {
+  opacity: 0;
+  transform: scale(0.95); /* Umesto pomeranja, element je blago smanjen */
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.fade-in-section.is-visible {
+  opacity: 1;
+  transform: scale(1); /* Vraćamo ga na originalnu veličinu */
+}
+
+
+
+
 /* IZMENJENO: Vraćena flexbox logika za "lepljivi" footer */
 .pocetna-wrapper {
     display: flex;
@@ -21,7 +36,7 @@
 .pocetna-page {
     flex-grow: 1; /* Omogućava da glavni sadržaj gurne footer na dno */
     color: var(--tekst-primarni);
-    font-family: 'Montserrat', sans-serif;
+    font-family: "Josefin Sans", sans-serif;
     overflow-x: hidden;
     /* Uklonjen je padding-bottom koji je služio za fiksirani footer */
 }
@@ -75,6 +90,18 @@
     position: relative;
 }
 
+.bold-white {
+  color: #FFFFFF; /* Postavlja boju teksta na belu */
+  font-weight: bold; /* Osigurava da je tekst boldovan */
+}
+
+.bold-orange-glow {
+  color: #FFFFFF; /* Postavlja boju teksta na belu */
+  font-weight: bold; /* Osigurava da je tekst boldovan */
+  /* Dodaje sjaj (glow) oko teksta: 0 0 je pozicija, 8px je zamućenje, #F97316 je narandžasta boja */
+  text-shadow: 0 0 8px #F97316;
+}
+
 .hero-title {
     font-size: clamp(2.5rem, 6vw, 4.5rem);
     font-weight: 700;
@@ -93,6 +120,14 @@
     color: var(--tekst-sekundarni);
     max-width: 700px;
     margin: 0 auto 2.5rem auto;
+    line-height: 1.6;
+}
+
+.hero-subtitle2 {
+    font-size: 1.2rem;
+    color: var(--tekst-sekundarni);
+    max-width: 700px;
+    margin: 0 auto 0rem auto;
     line-height: 1.6;
 }
 

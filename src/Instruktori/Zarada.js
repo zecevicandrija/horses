@@ -62,7 +62,7 @@ const Zarada = () => {
             labels,
             datasets: [
               {
-                label: "Zarada po danu (RSD)",
+                label: "Zarada po danu (€)",
                 data: earningsData,
                 borderColor: "#ffa500",
                 backgroundColor: "rgba(255, 165, 0, 0.2)",
@@ -114,7 +114,7 @@ const Zarada = () => {
       <h3 className="zarada-title">Pregled Zarade</h3>
       <div className="zarada-summary">
         <p>Ukupna Zabeležena Zarada:</p>
-        <h4 className="zarada-total">{totalEarnings.toFixed(2)} RSD</h4>
+        <h4 className="zarada-total">{totalEarnings.toFixed(2)} €</h4>
       </div>
       <div className="chart-container">
         {isLoading ? (

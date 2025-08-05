@@ -69,7 +69,7 @@ const Checkout = () => {
             <div className="order-summary">
                 <h3>Pregled porudžbine:</h3>
                 <p>Naziv: <strong>{items[0].naziv}</strong></p>
-                <p>Cena: <strong>{items[0].cena}rsd</strong></p>
+                <p>Cena: <strong>{items[0].cena}€</strong></p>
                 {/* Ovde možeš dodati mapiranje ako ima više kurseva */}
             </div>
             

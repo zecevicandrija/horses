@@ -34,7 +34,7 @@ const LoginPage = () => {
                 <div className="form-input-group">
                     <label htmlFor="email">Email Adresa</label>
                     <div className="input-with-icon">
-                        <i className="icon-email"></i> {/* Opciono: za ikonicu */}
+                        <i className="ri-mail-line"></i>
                         <input
                             id="email"
                             name="email"
@@ -50,7 +50,7 @@ const LoginPage = () => {
                 <div className="form-input-group">
                     <label htmlFor="password">Lozinka</label>
                     <div className="input-with-icon">
-                        <i className="icon-lock"></i> {/* Opciono: za ikonicu */}
+                        <i className="ri-lock-password-line"></i>
                         <input
                             id="password"
                             name="password"

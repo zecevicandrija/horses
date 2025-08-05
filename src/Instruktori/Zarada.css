@@ -3,7 +3,7 @@
     flex-direction: column;
     height: 100%;
     color: #f0f0f0;
-    font-family: "Bai Jamjuree", sans-serif;
+    font-family: "Josefin Sans", sans-serif;
 }
 
 .zarada-title {
@@ -19,14 +19,14 @@
 .zarada-summary {
     text-align: center;
     margin-bottom: 1.5rem;
-    font-family: "Bai Jamjuree", sans-serif;
+    font-family: "Josefin Sans", sans-serif;
 }
 
 .zarada-summary p {
     margin: 0;
     color: #ccc;
     font-size: 1rem;
-    font-family: "Bai Jamjuree", sans-serif;
+    font-family: "Josefin Sans", sans-serif;
 }
 
 .zarada-total {
@@ -41,7 +41,7 @@
     position: relative;
     height: 300px; /* Definišemo visinu za kontejner grafikona */
     width: 100%;
-    font-family: "Bai Jamjuree", sans-serif;
+    font-family: "Josefin Sans", sans-serif;
 }
 
 .chart-container p {
@@ -50,5 +50,5 @@
     align-items: center;
     height: 100%;
     color: #888;
-    font-family: "Bai Jamjuree", sans-serif;
+    font-family: "Josefin Sans", sans-serif;
 }

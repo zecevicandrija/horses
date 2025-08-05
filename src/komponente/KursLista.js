@@ -162,7 +162,7 @@ const KursLista = () => {
 
         {/* Ovaj div gura cenu i ocenu na dno kartice */}
         <div className="kurs-meta">
-            <p className="kurs-cena">{kurs.cena} RSD</p>
+            <p className="kurs-cena">{kurs.cena} €</p>
             <div className="kurs-rating">
                 <div className="rating-value">
                     <span className="average-rating">{(ratings[kurs.id] || 0).toFixed(1)}</span>

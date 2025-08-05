@@ -1,175 +1,187 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../login/api";
 import { useAuth } from "../login/auth";
 import "./KupljenKurs.css";
+import reactkurs from '../images/reactkurs.png';
+import keyikonica from '../icons/key.png';
+import moneybag from '../icons/money-bag.png';
+import wave from '../icons/wave-sound.png';
+import startup from '../icons/startup.png';
+import crystal2 from '../icons/crystal2.png';
+import potion from '../icons/potion.png';
+import sword from '../icons/sword.png';
+import krunica from '../icons/krunica.png';
+
+// Niz sa klasama za ikonice.
+const sectionIcons = [
+    keyikonica,    // Ključ (za uvodne koncepte)
+    potion,        // Napitak (za osnove)
+    wave,          // Zvuk (za audio)
+    crystal2,      // Kristal (za vizuelne efekte)
+    moneybag,      // Novac (za monetizaciju)
+    sword,         // Mač (za napredne tehnike)
+    startup,       // Raketa (za eksportovanje)
+    krunica,
+    'ri-lightbulb-flash-line', // Sijalica (za ideje)
+    'ri-tools-line'  // Alati (za tehničke veštine)
+];
 
 const KupljenKurs = () => {
-  // --- IZMENA: Restrukturiranje stanja (state) ---
-  const [sviKupljeniKursevi, setSviKupljeniKursevi] = useState([]); // Čuva listu SVIH kurseva samo za dropdown
-  const [selektovaniKursId, setSelektovaniKursId] = useState(""); // Čuva ID kursa koji je korisnik izabrao
-  const [progresPoSekcijama, setProgresPoSekcijama] = useState([]); // Čuva podatke o sekcijama i progresu
-  const [isLoading, setIsLoading] = useState(true); // Za inicijalno učitavanje liste kurseva
-  const [isLoadingSekcija, setIsLoadingSekcija] = useState(false); // NOVO: Za učitavanje sekcija nakon odabira
+    const [sviKupljeniKursevi, setSviKupljeniKursevi] = useState([]);
+    const [selektovaniKursId, setSelektovaniKursId] = useState("");
+    const [progresPoSekcijama, setProgresPoSekcijama] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingSekcija, setIsLoadingSekcija] = useState(false);
 
-  const { user } = useAuth();
-  const navigate = useNavigate();
+    const { user } = useAuth();
+    const navigate = useNavigate();
 
-  // Proveravamo da li je korisnikova pretplata aktivna (logika ostaje ista)
-  const imaAktivnuPretplatu =
-    user &&
-    user.subscription_expires_at &&
-    new Date(user.subscription_expires_at) > new Date();
+    // Dohvata sve kupljene kurseve i automatski postavlja prvi kao selektovani
+    useEffect(() => {
+        const fetchKupljeneKurseve = async () => {
+            if (user && user.id) {
+                try {
+                    setIsLoading(true);
+                    const response = await api.get(`/api/kupovina/user/${user.id}`);
+                    const kursevi = response.data;
+                    setSviKupljeniKursevi(kursevi);
 
-  // --- IZMENA: Prvi useEffect - dobavlja samo listu kupljenih kurseva ---
-  useEffect(() => {
-    const fetchKupljeneKurseve = async () => {
-      if (user && user.id) {
-        try {
-          setIsLoading(true);
-          const response = await api.get(`/api/kupovina/user/${user.id}`);
-          setSviKupljeniKursevi(response.data);
-        } catch (error) {
-          console.error("Greška pri dohvatanju kupljenih kurseva:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        setIsLoading(false);
-      }
-    };
+                    if (kursevi && kursevi.length > 0) {
+                        setSelektovaniKursId(kursevi[0].id);
+                    }
 
-    fetchKupljeneKurseve();
-  }, [user]);
+                } catch (error) {
+                    console.error("Greška pri dohvatanju kupljenih kurseva:", error);
+                } finally {
+                    setIsLoading(false);
+                }
+            } else {
+                setIsLoading(false);
+            }
+        };
+        fetchKupljeneKurseve();
+    }, [user]);
 
-  // --- NOVO: Drugi useEffect - dobavlja progres po sekcijama KADA se odabere kurs ---
-  useEffect(() => {
-    const fetchProgresPoSekcijama = async () => {
-      // Pokreće se samo ako su odabrani i kurs i korisnik
-      if (selektovaniKursId && user && user.id) {
-        try {
-          setIsLoadingSekcija(true);
-          setProgresPoSekcijama([]); // Resetuj prethodne rezultate
-          // Pozivamo naš NOVI, moćni endpoint
-          const response = await api.get(
-            `/api/kursevi/progres-sekcija/${selektovaniKursId}/korisnik/${user.id}`
-          );
-          setProgresPoSekcijama(response.data);
-        } catch (error) {
-          console.error("Greška pri dohvatanju progresa po sekcijama:", error);
-        } finally {
-          setIsLoadingSekcija(false);
-        }
-      }
-    };
-
-    fetchProgresPoSekcijama();
-  }, [selektovaniKursId, user]);
+    // Dohvata progres za automatski selektovani kurs
+    useEffect(() => {
+        const fetchProgresPoSekcijama = async () => {
+            if (selektovaniKursId && user && user.id) {
+                try {
+                    setIsLoadingSekcija(true);
+                    setProgresPoSekcijama([]); // Resetuj prethodne podatke
+                    const response = await api.get(
+                        `/api/kursevi/progres-sekcija/${selektovaniKursId}/korisnik/${user.id}`
+                    );
+                    setProgresPoSekcijama(response.data);
+                } catch (error) {
+                    console.error("Greška pri dohvatanju progresa po sekcijama:", error);
+                } finally {
+                    setIsLoadingSekcija(false);
+                }
+            }
+        };
+        fetchProgresPoSekcijama();
+    }, [selektovaniKursId, user]); // Ovaj hook se pokreće kada se `selektovaniKursId` postavi
 
 
-  const handleProduziPretplatu = async (kurs) => {
-    // Ova logika ostaje ista, ali se više ne koristi u ovom prikazu
-    // Možeš je ostaviti ako ti treba za nešto drugo
-  };
+    if (isLoading) {
+        return (
+            <div className="kupljeni-kursevi-container1">
+                <p>Učitavanje kursa...</p>
+            </div>
+        );
+    }
 
-  if (isLoading) {
     return (
-      <div className="kupljeni-kursevi-container1">
-        <p>Učitavanje kurseva...</p>
-      </div>
+        <div className="kupljeni-kursevi-container1">
+            <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+                <filter id="water-effect">
+                    <feTurbulence
+                        type="fractalNoise"
+                        baseFrequency="0.02 0.1"
+                        numOctaves="2"
+                        result="turbulence"
+                    />
+                    <feDisplacementMap
+                        in="SourceGraphic"
+                        in2="turbulence"
+                        scale="15"
+                        xChannelSelector="R"
+                        yChannelSelector="G"
+                    />
+                </filter>
+            </svg>
+            <h2 className="naslovkupljeni1">LEKCIJE</h2>
+
+            {isLoadingSekcija && <p style={{ textAlign: 'center', marginTop: '2rem' }}>Učitavanje sekcija...</p>}
+
+            {!isLoadingSekcija && progresPoSekcijama.length > 0 && (
+                <div className="kurs-timeline">
+                    {progresPoSekcijama.map((sekcija, index) => {
+                        const iconClass = sectionIcons[index % sectionIcons.length];
+
+                        return (
+                            <div key={sekcija.sekcija_id} className="timeline-item">
+                                <div className="timeline-dot"></div>
+                                <div className="timeline-content kurs-card1">
+
+                                    <img
+                                        src={sekcija.thumbnail || reactkurs}
+                                        alt={`Sekcija ${sekcija.naziv_sekcije}`}
+                                        className="card-image"
+                                    />
+
+                                    <div className="card-body">
+                                        <div className="card-header">
+                                            <div className="timeline-icon-container">
+                                                {typeof iconClass === 'string' && iconClass.startsWith('ri-') ? (
+                                                    <i className={iconClass}></i>
+                                                ) : (
+                                                    <img src={iconClass} alt="ikona" className="timeline-png-icon" />
+                                                )}
+                                            </div>
+                                            <h3>{sekcija.naziv_sekcije}</h3>
+                                        </div>
+                                        <div className="progres-container">
+                                            <div className="progres-info">
+                                                <h4>Progres</h4>
+                                                <span className="procenti-broj">
+                                                    {`${sekcija.progres || 0}%`}
+                                                </span>
+                                            </div>
+                                            <div className="progres-bar">
+                                                <div
+                                                    className="progres-popunjeno"
+                                                    style={{ width: `${sekcija.progres || 0}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="button-group1">
+                                            <button
+                                                onClick={() => navigate(`/kurs/${selektovaniKursId}?sekcija=${sekcija.sekcija_id}`)}
+                                                className="kurs-link1"
+                                            >
+                                                {sekcija.progres > 0 ? 'NASTAVI UČENJE' : 'ZAPOČNI'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+            {!isLoading && !isLoadingSekcija && selektovaniKursId && progresPoSekcijama.length === 0 && (
+                 <p style={{textAlign: 'center', marginTop: '2rem'}}>Ovaj kurs trenutno nema definisane sekcije.</p>
+            )}
+
+            {!isLoading && sviKupljeniKursevi.length === 0 && (
+                 <p style={{textAlign: 'center', marginTop: '2rem'}}>Nemate kupljenih kurseva.</p>
+            )}
+        </div>
     );
-  }
-
- return (
-    <div className="kupljeni-kursevi-container1">
-        <h2 className="naslovkupljeni1">Moj Progres</h2>
-        
-        {!user && (
-            <p>
-                Molimo vas da se prijavite da biste videli svoje kupljene kurseve.
-            </p>
-        )}
-        
-        {user && sviKupljeniKursevi.length === 0 && !isLoading && (
-            <p>Nema kupljenih kurseva.</p>
-        )}
-
-        {user && sviKupljeniKursevi.length > 0 && (
-            <div className="kurs-selector-container">
-                <label htmlFor="kurs-select">Izaberite kurs za pregled progresa:</label>
-                <select 
-                    id="kurs-select"
-                    value={selektovaniKursId}
-                    onChange={(e) => setSelektovaniKursId(e.target.value)}
-                    className="kurs-select-dropdown"
-                >
-                    <option value="">-- Odaberi kurs --</option>
-                    {sviKupljeniKursevi.map((kurs) => (
-                        <option key={kurs.id} value={kurs.id}>
-                            {kurs.naziv}
-                        </option>
-                    ))}
-                </select>
-            </div>
-        )}
-
-        {isLoadingSekcija && <p style={{textAlign: 'center', marginTop: '2rem'}}>Učitavanje sekcija...</p>}
-
-        {!isLoadingSekcija && progresPoSekcijama.length > 0 && (
-            <div className="kurs-timeline"> {/* IZMENA: Nova klasa za timeline kontejner */}
-                {progresPoSekcijama.map((sekcija, index) => (
-                    <div key={sekcija.sekcija_id} className="timeline-item">
-                        <div className="timeline-dot"></div>
-                        <div className="timeline-content kurs-card1">
-                            <div className="card-header">
-                                <div className="timeline-step-number">{index + 1}</div>
-                                <h3>{sekcija.naziv_sekcije}</h3>
-                            </div>
-                            
-                            <div className="card-stats">
-                                <div className="stat-item">
-                                  <span className="stat-label">Ukupno Lekcija: </span>
-                                  <span className="stat-value">{sekcija.ukupan_broj_lekcija}</span>
-                                </div>
-                                <div className="stat-item">
-                                    <span className="stat-value">{sekcija.kompletiranih_lekcija}</span>
-                                </div>
-                            </div>
-
-                            <div className="progres-container">
-                                <div className="progres-info">
-                                    <h4>Progres</h4>
-                                    <span className="procenti-broj">
-                                        {`${sekcija.progres || 0}%`}
-                                    </span>
-                                </div>
-                                <div className="progres-bar">
-                                    <div
-                                        className="progres-popunjeno"
-                                        style={{ width: `${sekcija.progres || 0}%` }}
-                                    ></div>
-                                </div>
-                            </div>
-
-                            <div className="button-group1">
-                                <button
-                                    onClick={() => navigate(`/kurs/${selektovaniKursId}`)}
-                                    className="kurs-link1"
-                                >
-                                    Pristupi Kursu
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        )}
-
-        {!isLoadingSekcija && selektovaniKursId && progresPoSekcijama.length === 0 && (
-            <p style={{textAlign: 'center', marginTop: '2rem'}}>Ovaj kurs nema definisane sekcije.</p>
-        )}
-    </div>
-);
 };
 
 export default KupljenKurs;

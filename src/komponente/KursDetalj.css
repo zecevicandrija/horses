@@ -52,7 +52,6 @@
 /* --- NOVI Glavni layout (dve kolone) --- */
 .course-layout-wrapper {
     display: flex;
-    flex-direction: row-reverse; /* <<< KLJUČNA PROMENA: menja strane */
     gap: 2rem;
     max-width: 1600px;
     margin: 0 auto;
@@ -281,7 +280,7 @@
     border-radius: 30px;
     background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
     color: #000;
-    font-family: 'Montserrat', sans-serif;
+    font-family: "Josefin Sans", sans-serif;
     font-size: 1.1rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -331,6 +330,96 @@
 .welcome-card.state-expired .btn-purchase.large:hover {
     box-shadow: 0 8px 25px rgba(255, 51, 51, 0.5);
 }
+
+
+/* =================================================================== */
+/* MODERNI CUSTOM CHECKBOX                                             */
+/* =================================================================== */
+
+/* 1. Wrapper (labela) koji pozicionira sve */
+.custom-checkbox-wrapper {
+    position: relative;
+    display: block;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    user-select: none; /* Sprečava selektovanje teksta */
+}
+
+/* 2. Sakrivamo originalni, ružni checkbox */
+.custom-checkbox-wrapper .lesson-complete-checkbox {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+/* 3. Kreiramo naš vizuelni checkbox (kvadratić) */
+.custom-checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 22px;
+    width: 22px;
+    background-color: transparent;
+    border: 2px solid var(--text-muted); /* Koristimo postojeću varijablu za sivu boju */
+    border-radius: 6px;
+    transition: all 0.2s ease-in-out;
+}
+
+/* 4. Stil kada pređemo mišem preko njega */
+.custom-checkbox-wrapper:hover .custom-checkmark {
+    border-color: var(--primary-color); /* Posvetli u narandžasto */
+}
+
+/* 5. Stil kada je checkbox čekiran (najvažniji deo) */
+.custom-checkbox-wrapper .lesson-complete-checkbox:checked ~ .custom-checkmark {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: scale(1.05); /* Mala animacija za "pop" efekat */
+}
+
+/* 6. Kreiramo kvačicu (checkmark) unutar kvadratića */
+.custom-checkmark::after {
+    content: "";
+    position: absolute;
+    display: none; /* Sakrivena je po defaultu */
+}
+
+/* 7. Prikazujemo kvačicu samo kada je checkbox čekiran */
+.custom-checkbox-wrapper .lesson-complete-checkbox:checked ~ .custom-checkmark::after {
+    display: block;
+}
+
+/* 8. Stilizujemo samu kvačicu */
+.custom-checkbox-wrapper .custom-checkmark::after {
+    left: 7px;
+    top: 3px;
+    width: 6px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+    animation: fadeInCheckmark 0.2s ease-in-out;
+}
+
+/* Bonus: Animacija za pojavljivanje kvačice */
+@keyframes fadeInCheckmark {
+    from {
+        opacity: 0;
+        transform: rotate(45deg) scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: rotate(45deg) scale(1);
+    }
+}
+
+
+
+
+
 
 /* --- Responzivni Dizajn --- */
 @media (max-width: 1200px) {

@@ -110,7 +110,7 @@ const DodajKurs = () => {
                 </div>
                 
                 <div className="form-group">
-                    <label className="form-label">Cena Kursa (RSD):</label>
+                    <label className="form-label">Cena Kursa (€):</label>
                     <input
                         className="form-input"
                         type="number"

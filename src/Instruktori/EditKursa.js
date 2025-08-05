@@ -17,13 +17,16 @@ const EditKursa = () => {
     const [editForm, setEditForm] = useState({ title: '', content: '', sekcija_id: '' });
     const [videoFile, setVideoFile] = useState(null);
 
+    // Stanja za izmenu sekcije
     const [editingSekcijaId, setEditingSekcijaId] = useState(null);
     const [noviNazivSekcije, setNoviNazivSekcije] = useState('');
+    const [noviThumbnailUrl, setNoviThumbnailUrl] = useState('');
     const [originalOrder, setOriginalOrder] = useState([]);
 
-    // NOVO: Stanje za dodavanje nove sekcije
+    // Stanja za dodavanje nove sekcije
     const [isAddingSekcija, setIsAddingSekcija] = useState(false);
     const [novaSekcijaNaziv, setNovaSekcijaNaziv] = useState('');
+    const [novaSekcijaThumbnailUrl, setNovaSekcijaThumbnailUrl] = useState('');
 
     const fetchData = useCallback(async () => {
         try {
@@ -50,7 +53,6 @@ const EditKursa = () => {
 
     // --- LOGIKA ZA SEKCIJE ---
 
-    // NOVO: Funkcija za dodavanje nove sekcije
     const handleAddNewSekcija = async (e) => {
         e.preventDefault();
         if (!novaSekcijaNaziv.trim()) {
@@ -60,10 +62,11 @@ const EditKursa = () => {
         try {
             await api.post('/api/sekcije', {
                 kurs_id: kursId,
-                naziv: novaSekcijaNaziv
+                naziv: novaSekcijaNaziv,
+                thumbnail: novaSekcijaThumbnailUrl 
             });
-            // Resetuj formu i osveži podatke
             setNovaSekcijaNaziv('');
+            setNovaSekcijaThumbnailUrl('');
             setIsAddingSekcija(false);
             fetchData();
         } catch (error) {
@@ -75,11 +78,15 @@ const EditKursa = () => {
     const handleEditSekcijaClick = (sekcija) => {
         setEditingSekcijaId(sekcija.id);
         setNoviNazivSekcije(sekcija.naziv);
+        setNoviThumbnailUrl(sekcija.thumbnail || '');
     };
 
     const handleSaveSekcija = async (sekcijaId) => {
         try {
-            await api.put(`/api/sekcije/${sekcijaId}`, { naziv: noviNazivSekcije });
+            await api.put(`/api/sekcije/${sekcijaId}`, { 
+                naziv: noviNazivSekcije,
+                thumbnail: noviThumbnailUrl
+            });
             setEditingSekcijaId(null);
             fetchData();
         } catch (error) {
@@ -155,8 +162,6 @@ const EditKursa = () => {
         
         if (videoFile) {
             formData.append('video', videoFile);
-        } else {
-            formData.append('video_url', editingLesson.video_url || '');
         }
 
         try {
@@ -186,12 +191,23 @@ const EditKursa = () => {
                     {sekcije.map((sekcija, index) => (
                         <div key={sekcija.id} className="sekcija-card-edit">
                             {editingSekcijaId === sekcija.id ? (
-                                <input 
-                                    type="text"
-                                    value={noviNazivSekcije}
-                                    onChange={(e) => setNoviNazivSekcije(e.target.value)}
-                                    className="sekcija-edit-input"
-                                />
+                                <div className="edit-sekcija-form">
+                                    <label>Naziv sekcije:</label>
+                                    <input 
+                                        type="text"
+                                        value={noviNazivSekcije}
+                                        onChange={(e) => setNoviNazivSekcije(e.target.value)}
+                                        className="sekcija-edit-input"
+                                    />
+                                    <label>URL slike (thumbnail):</label>
+                                    <input
+                                        type="text"
+                                        placeholder="https://primer.com/slika.png"
+                                        value={noviThumbnailUrl}
+                                        onChange={(e) => setNoviThumbnailUrl(e.target.value)}
+                                        className="sekcija-edit-input"
+                                    />
+                                </div>
                             ) : (
                                 <h4>{sekcija.redosled}. {sekcija.naziv}</h4>
                             )}
@@ -202,7 +218,7 @@ const EditKursa = () => {
                                         <button onClick={() => setEditingSekcijaId(null)} className="action-btn cancel-btn">Odustani</button>
                                     </>
                                 ) : (
-                                    <button onClick={() => handleEditSekcijaClick(sekcija)} className="action-btn edit-btn">Izmeni Ime</button>
+                                    <button onClick={() => handleEditSekcijaClick(sekcija)} className="action-btn edit-btn">Izmeni</button>
                                 )}
                                 <button onClick={() => handleDeleteSekcija(sekcija.id)} className="action-btn delete-btn">Obriši</button>
                                 <div className="order-controls">
@@ -214,7 +230,6 @@ const EditKursa = () => {
                     ))}
                 </div>
 
-                {/* NOVO: Forma za dodavanje nove sekcije */}
                 <div className="add-sekcija-panel">
                     {isAddingSekcija ? (
                         <form onSubmit={handleAddNewSekcija} className="add-sekcija-form">
@@ -226,8 +241,17 @@ const EditKursa = () => {
                                 className="sekcija-add-input"
                                 autoFocus
                             />
-                            <button type="submit" className="action-btn save-btn">Dodaj</button>
-                            <button type="button" onClick={() => setIsAddingSekcija(false)} className="action-btn cancel-btn">Odustani</button>
+                            <input
+                                type="text"
+                                placeholder="URL slike (opciono)"
+                                value={novaSekcijaThumbnailUrl}
+                                onChange={(e) => setNovaSekcijaThumbnailUrl(e.target.value)}
+                                className="sekcija-add-input"
+                            />
+                            <div className='dugmici'>
+                                <button type="submit" className="action-btn save-btn">Dodaj</button>
+                                <button type="button" onClick={() => setIsAddingSekcija(false)} className="action-btn cancel-btn">Odustani</button>
+                            </div>
                         </form>
                     ) : (
                         <button onClick={() => setIsAddingSekcija(true)} className="add-sekcija-btn">
@@ -252,6 +276,7 @@ const EditKursa = () => {
                         </div>
                     </div>
                 ))}
+                <button onClick={() => navigate('/lekcije')} className="back-button">Dodaj Lekcije</button>
             </div>
 
             {isEditModalOpen && (

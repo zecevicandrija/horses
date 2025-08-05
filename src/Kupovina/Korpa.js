@@ -125,7 +125,7 @@ const Korpa = () => {
                                 <img src={course.slika} alt={course.naziv} className="korpa-course-image" />
                                 <div className="korpa-course-info">
                                     <h3>{course.naziv}</h3>
-                                    <p><strong>Instruktor:</strong> {course.instructorName}</p>
+                                    <p><strong>Instruktor:</strong> Filip Motion</p>
                                     <p><strong>Cena:</strong> {course.cena}$</p>
                                     <p><strong>Broj lekcija:</strong> {course.lessonCount}</p>
                                     <button onClick={() => handleRemoveFromCart(course)} className="korpa-remove-button">Ukloni</button>

@@ -192,16 +192,6 @@ const Lekcije = () => {
                         required
                     />
                 </div>
-                <div>
-                    <label htmlFor="assignment">Zadatak (opciono):</label>
-                    <textarea
-                        id="assignment"
-                        name="assignment"
-                        value={newLekcija.assignment}
-                        onChange={handleInputChange}
-                        placeholder="Unesite zadatak za lekciju"
-                    />
-                </div>
 
                 <button type="submit" disabled={loading}>
                     {loading ? 'Dodavanje...' : 'Dodaj Lekciju'}

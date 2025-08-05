@@ -58,7 +58,7 @@ const Statistika = () => {
     const chartData = {
         labels: stats.chartData.map(d => new Date(d.date).toLocaleDateString()),
         datasets: [{
-            label: 'Dnevna Zarada (RSD)',
+            label: 'Dnevna Zarada (€)',
             data: stats.chartData.map(d => d.revenue),
             borderColor: '#ffa500',
             backgroundColor: 'rgba(255, 165, 0, 0.2)',
@@ -94,7 +94,7 @@ const Statistika = () => {
             <div className="stats-grid">
                 <div className="stat-card">
                     <h4>Ukupna Zarada</h4>
-                    <p>{stats.totalRevenue.toFixed(2)} RSD</p>
+                    <p>{stats.totalRevenue.toFixed(2)} €</p>
                 </div>
                 <div className="stat-card">
                     <h4>Ukupno Prodaja</h4>

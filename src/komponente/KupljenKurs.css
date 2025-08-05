@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap');
 
 :root {
-    --narandzasta: #ff4500; /* OrangeRed */
+    --narandzasta: #ff4500;
     --narandzasta-svetla: #ff6a34;
     --tamna-pozadina: #121212;
     --svetla-pozadina: #1a1a1a;
@@ -15,9 +15,9 @@
     padding: 2rem;
     color: var(--tekst-primarni);
     min-height: 100vh;
-    font-family: 'Montserrat', sans-serif;
+    font-family: "Josefin Sans", sans-serif;
     margin-top: 2%;
-    overflow-x: hidden; /* Sprečava horizontalni skrol zbog animacija */
+    overflow-x: hidden;
 }
 
 .naslovkupljeni1 {
@@ -40,7 +40,6 @@
     border-radius: 2px;
 }
 
-/* Stilovi za Selektor Kursa (ostaju slični) */
 .kurs-selector-container {
     max-width: 600px;
     margin: 0 auto 4rem auto;
@@ -73,8 +72,7 @@
     background-size: 0.8em;
 }
 
-/* --- NOVI TIMELINE DIZAJN --- */
-
+/* --- TIMELINE DIZAJN --- */
 .kurs-timeline {
     position: relative;
     max-width: 1000px;
@@ -82,7 +80,6 @@
     padding: 2rem 0;
 }
 
-/* Vertikalna linija */
 .kurs-timeline::after {
     content: '';
     position: absolute;
@@ -96,10 +93,7 @@
     animation: drawLine 2s ease-out forwards;
 }
 
-@keyframes drawLine {
-    from { height: 0; }
-    to { height: 100%; }
-}
+@keyframes drawLine { from { height: 0; } to { height: 100%; } }
 
 .timeline-item {
     padding: 10px 40px;
@@ -107,7 +101,6 @@
     width: 50%;
 }
 
-/* Kružić na liniji */
 .timeline-dot {
     content: '';
     position: absolute;
@@ -121,48 +114,47 @@
     z-index: 2;
 }
 
-/* Raspored levo/desno */
-.timeline-item:nth-child(odd) {
-    left: 0;
-}
-
-.timeline-item:nth-child(even) {
-    left: 50%;
-}
-
-/* Postavljanje kružića za desne elemente */
-.timeline-item:nth-child(even) .timeline-dot {
-    left: -10px;
-}
+.timeline-item:nth-child(odd) { left: 0; }
+.timeline-item:nth-child(even) { left: 50%; }
+.timeline-item:nth-child(even) .timeline-dot { left: -10px; }
 
 .kurs-card1 {
     background: var(--tamna-kartica);
     border-radius: 16px;
-    padding: 1.5rem 2rem;
+    padding: 0;
     border: 1px solid var(--border-boja);
     display: flex;
     flex-direction: column;
     position: relative;
-    opacity: 0; /* Počinje nevidljivo za animaciju */
+    opacity: 0;
     animation: slideIn 0.6s ease-out forwards;
+    overflow: hidden;
 }
 
-/* Staggered animacija */
+.card-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+}
+
+.card-body {
+    padding: 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+
+
 .timeline-item:nth-child(1) .kurs-card1 { animation-delay: 0.2s; }
 .timeline-item:nth-child(2) .kurs-card1 { animation-delay: 0.4s; }
 .timeline-item:nth-child(3) .kurs-card1 { animation-delay: 0.6s; }
 .timeline-item:nth-child(4) .kurs-card1 { animation-delay: 0.8s; }
-/* ... dodaj još po potrebi */
 
 @keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(50px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(50px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .card-header {
@@ -172,37 +164,92 @@
     margin-bottom: 1.5rem;
 }
 
-.timeline-step-number {
-    background-color: var(--narandzasta);
+/* IZMENA: Stilizujemo kontejner za ikonicu */
+.timeline-icon-container {
     color: var(--tekst-primarni);
-    min-width: 40px;
-    height: 40px;
+    min-width: 55px; /* Malo veći za bolji izgled */
+    height: 55px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
-    font-weight: 700;
     flex-shrink: 0;
+    box-shadow: 0 0 15px rgba(255, 69, 0, 0.4); /* Dodajemo blagi sjaj */
     margin-bottom: 10px;
+    border: 2px solid #ff6a34;
 }
+
+/* Gaming-style ram za ikonice */
+.timeline-icon-container {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at top left, var(--svetla-pozadina) 40%, var(--tamna-kartica) 100%);
+    border: 2px solid var(--narandzasta);
+    clip-path: polygon(
+        25% 0%, 75% 0%,
+        100% 25%, 100% 75%,
+        75% 100%, 25% 100%,
+        0% 75%, 0% 25%
+    ); /* osmerougaoni “gaming” ram */
+    overflow: visible;
+    z-index: 2;
+}
+
+.timeline-icon-container::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%) scale(1.3);
+    border-radius: 50%;
+    box-shadow:
+        0 0 10px var(--narandzasta),
+        0 0 20px var(--narandzasta-svetla),
+        0 0 30px var(--narandzasta);
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.timeline-icon-container i,
+.timeline-icon-container img {
+    z-index: 3;
+}
+
+.timeline-icon-container i {
+    font-size: 1.6rem;
+    color: var(--narandzasta);
+}
+
+.timeline-png-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 4px var(--narandzasta));
+}
+
 
 .kurs-card1 h3 {
     font-size: 1.5rem;
     margin: 0;
+    line-height: 1.2;
 }
 
 .kurs-card1:hover {
     transform: translateY(-10px);
     border-color: var(--narandzasta);
-    /* NOVO: Narandžasti "glow" efekat */
     box-shadow: 0 0 55px rgba(255, 69, 0, 0.4), 0 10px 20px rgba(0, 0, 0, 0.4);
     transition: .4s;
 }
 
 .card-stats {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     background-color: var(--tamna-pozadina);
     padding: 1rem;
     border-radius: 10px;
@@ -218,40 +265,104 @@
 .progres-info h4 { margin: 0; font-size: 1rem; color: var(--tekst-sekundarni); }
 .procenti-broj { font-weight: bold; }
 
-.progres-bar { width: 100%; height: 8px; background: #333; border-radius: 8px; overflow: hidden; }
+/*Progres Bar*/
+
+.progres-container {
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.progres-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.8rem;
+    padding: 0 5px;
+}
+
+.progres-info h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--tekst-sekundarni);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.procenti-broj {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--tekst-primarni);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.progres-bar {
+    width: 100%;
+    height: 40px;
+    background: #181818;
+    border-radius: 50px;
+    border: 1px solid #333;
+    padding: 5px;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+    overflow: hidden;
+}
 
 .progres-popunjeno {
     height: 100%;
-    background: var(--narandzasta);
-    border-radius: 8px;
+    border-radius: 50px;
+    background-color: transparent;
+    transition: width 1s ease-out;
     position: relative;
     overflow: hidden;
-    transition: width 1s cubic-bezier(0.25, 1, 0.5, 1);
-    animation: fillProgress 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    
+    box-shadow: inset 0 -5px 10px rgba(0,0,0,0.2);
 }
 
-/* Animacija popunjavanja progres bara */
-@keyframes fillProgress {
-    from { width: 0 !important; }
-}
-
-
-/* Shine animacija za progress bar */
+.progres-popunjeno::before,
 .progres-popunjeno::after {
     content: '';
     position: absolute;
-    top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
-    animation: shine 2s infinite linear;
+    width: 200%; 
+    height: 120%; 
+    
+    background: var(--narandzasta-svetla);
+    
+    border-radius: 45% 55%;
+
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
 }
 
-@keyframes shine {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+.progres-popunjeno::before {
+    bottom: -15%;
+    opacity: 0.7;
+    animation-name: wave-up-down;
+    animation-duration: 5s;
 }
+
+.progres-popunjeno::after {
+    bottom: -5%;
+    opacity: 1;
+    animation-name: wave-up-down;
+    animation-duration: 3.5s;
+}
+
+@keyframes wave-up-down {
+    0% {
+        transform: translate(-50%, 0) rotate(0deg);
+    }
+    50% {
+        transform: translate(-25%, -10%) rotate(5deg);
+    }
+    100% {
+        transform: translate(-50%, 0) rotate(0deg);
+    }
+}
+
+
+
 
 .button-group1 { margin-top: auto; }
 
@@ -278,29 +389,33 @@
 
 /* Responsive za timeline */
 @media (max-width: 992px) {
-    .kurs-timeline::after {
-        left: 31px; /* Pomeri liniju skroz levo */
-    }
-
-    .kupljeni-kursevi-container1 {
-        margin-top: 30px;
-    }
-
+    .kurs-timeline::after { left: 31px; }
+    .kupljeni-kursevi-container1 { margin-top: 30px; }
     .timeline-item {
         width: 100%;
-        padding-left: 70px; /* Napravi mesta za liniju i kružić */
+        padding-left: 70px;
         padding-right: 15px;
     }
-
-    .timeline-item:nth-child(even) {
-        left: 0%; /* Svi su na levoj strani */
-    }
-
-    .timeline-dot {
-        left: 21px; /* Pozicioniraj kružić na levu liniju */
-    }
+    .timeline-item:nth-child(even) { left: 0%; }
+    .timeline-dot { left: 21px; }
     .timeline-item:nth-child(even) .timeline-dot {
         left: 21px;
-        right: auto; /* Poništi 'right' pozicioniranje sa desktopa */
+        right: auto;
     }
+
+    @media (max-width: 768px) {
+    .kurs-card1 h3 {
+        font-size: 1.2rem;
+    }
+
+    .timeline-png-icon {
+        width: 28px;
+        height: 28px;
+    }
+
+    .timeline-icon-container {
+        width: 45px;
+        height: 55px;
+    }
+}
 }

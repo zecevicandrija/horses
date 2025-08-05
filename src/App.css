@@ -2,13 +2,15 @@
   --primary-color: #ff3c00;
   --secondary-color: #ff3c00;
   --accent-color: #ff3c00;
-  --text-color: #222;
+  --text-color: #f0f0f0; /* Prilagođeno za tamnu pozadinu */
   --card-bg: #ffffff;
   --card-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   --button-bg: var(--primary-color);
   --button-text: #fff;
   --button-hover: var(--secondary-color);
+  --fallback-bg-color: #1a1a1a; /* Tamna boja ako slika ne uspe da se učita */
 }
+
 /* Global Reset */
 * {
   box-sizing: border-box;
@@ -16,39 +18,53 @@
   padding: 0;
 }
 
-html,
-body,
-#root {
-  height: 100%;
-  background-color: var(--background-color);
+/* --- KONAČNO REŠENJE ZA POZADINU --- */
+
+html {
+  /* Na HTML postavljamo samo rezervnu boju */
+  background-color: var(--fallback-bg-color);
+}
+
+body {
+  position: relative; /* Neophodno za z-index pseudo-elementa */
+  background-color: transparent; /* Telo mora biti providno! */
+  font-family: "Josefin Sans", sans-serif;
   color: var(--text-color);
-  font-family: "Bai Jamjuree", sans-serif;
-  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Kreiramo pseudo-element koji će služiti kao fiksirana pozadina.
+  Ovo je najstabilniji način koji radi na SVIM pretraživačima.
+*/
+body::before {
+  content: '';
+  position: fixed;   /* Fiksiran u odnosu na ekran */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;       /* Postavlja ga IZA svog ostalog sadržaja */
+
+  /* Sve stilove za pozadinu prebacujemo ovde */
   background-image: url('../src/images/pozadina3.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
 }
 
-@media (max-width: 576px) {
-  html,
-  body,
-  #root {
-    /* stretch the image to the full screen */
-    background-size: 100vw 100vh;
-    background-repeat: no-repeat;
-    background-position: center top;
-    background-attachment: fixed;
-  }
+#root, .App {
+  /* Osiguravamo da su i glavni kontejneri providni */
+  background-color: transparent;
+  min-height: 100vh;
 }
 
-/* App container */
+
+/* App container - Opcionalno, može i da se obriše ako ne koristite .App klasu */
 .App {
   text-align: center;
-  min-height: 100vh;
-  background-color: var(--background-color);
-  color: var(--text-color);
   padding: 1rem;
 }
 
-/* Header */
+/* Header - Opcionalno, može i da se obriše */
 .App-header {
   min-height: 60vh;
   display: flex;
