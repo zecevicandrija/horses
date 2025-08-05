@@ -42,21 +42,29 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Endpoint za brisanje završenih lekcija po ID-u
-router.delete('/:id', async (req, res) => {
+// === NOVA RUTA ZA BRISANJE (UN-CHECK) ===
+// Briše zapis na osnovu korisnika i lekcije
+router.delete('/', async (req, res) => {
     try {
-        const kompletiranaLekcijaId = req.params.id;
-        const query = 'DELETE FROM kompletirane_lekcije WHERE id = ?';
-        const [results] = await db.query(query, [kompletiranaLekcijaId]);
+        const { korisnik_id, lekcija_id } = req.body;
 
-        if (results.affectedRows === 0) {
-            return res.status(404).json({ message: `Kompletirana lekcija sa ID-jem ${kompletiranaLekcijaId} nije pronađena.` });
+        if (!korisnik_id || !lekcija_id) {
+            return res.status(400).json({ error: 'Nedostaju obavezna polja (korisnik_id, lekcija_id).' });
         }
 
-        res.status(200).json({ message: `Kompletirana lekcija sa ID-jem ${kompletiranaLekcijaId} uspešno obrisana` });
+        const query = 'DELETE FROM kompletirane_lekcije WHERE korisnik_id = ? AND lekcija_id = ?';
+        const [results] = await db.query(query, [korisnik_id, lekcija_id]);
+
+        if (results.affectedRows === 0) {
+            // Nije greška ako zapis ne postoji, možda je korisnik brzo kliknuo dva puta.
+            // Vraćamo uspeh jer je stanje na kraju ono što je korisnik želeo (lekcija nije kompletirana).
+            return res.status(200).json({ message: 'Zapis nije pronađen ili je već obrisan.' });
+        }
+
+        res.status(200).json({ message: 'Lekcija uspešno obeležena kao nezavršena.' });
     } catch (err) {
-        console.error('Database error:', err);
-        res.status(500).json({ error: 'Database error' });
+        console.error('Database error on un-complete:', err);
+        res.status(500).json({ error: 'Greška na serveru prilikom brisanja progresa.' });
     }
 });
 
@@ -74,5 +82,6 @@ router.get('/user/:korisnikId/course/:kursId', async (req, res) => {
         res.status(500).json({ error: 'Database error' });
     }
 });
+
 
 module.exports = router;

@@ -13,22 +13,21 @@ const ratingsRouter = require('./routes/ratings');
 const komentariRouter = require('./routes/komentari');
 const kompletirane_lekcijeRouter = require('./routes/kompletirane_lekcije');
 const popustiRouter = require('./routes/popusti');
-const kvizoviRouter = require('./routes/kvizovi');
 const rezultatiKvizaRouter = require('./routes/rezultati_kviza');
 const placanjeRouter = require('./routes/placanje');
 const webhooksRouter = require('./routes/webhooks');
 const sekcijeRouter = require('./routes/sekcije');
 
 const app = express();
-const port = process.env.PORT || 3306;
+const port = process.env.PORT || 5000;;
 
 // Middleware
 
 // Definišemo listu dozvoljenih adresa
 const allowedOrigins = [
-    'https://learningplatform1.netlify.app',
-    'https://learningplatform1.netlify.app/'
+    'http://localhost:3000'
 ];
+
 app.use(cors({
     origin: function (origin, callback) {
         // Dozvoli zahteve koji nemaju origin (npr. Postman, mobilne aplikacije)
@@ -58,7 +57,6 @@ app.use('/api/ratings', ratingsRouter);
 app.use('/api/komentari', komentariRouter);
 app.use('/api/kompletirane_lekcije', kompletirane_lekcijeRouter);
 app.use('/api/popusti', popustiRouter);
-app.use('/api/kvizovi', kvizoviRouter);
 app.use('/api/rezultati_kviza', rezultatiKvizaRouter);
 app.use('/api/placanje', placanjeRouter);
 app.use('/api/sekcije', sekcijeRouter);
