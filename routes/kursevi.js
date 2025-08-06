@@ -52,7 +52,7 @@ router.get('/instruktor/:id', async (req, res) => {
 router.post('/', upload.single('slika'), async (req, res) => {
     const connection = await db.getConnection();
     try {
-        const { naziv, opis, instruktor_id, cena, is_subscription, lemon_squeezy_variant_id } = req.body;
+        const { naziv, opis, instruktor_id, cena, is_subscription, payhip_product_id } = req.body;
         const sekcije = req.body.sekcije ? JSON.parse(req.body.sekcije) : [];
 
         if (!naziv || !opis || !instruktor_id || cena === undefined || !req.file) {
@@ -63,8 +63,8 @@ router.post('/', upload.single('slika'), async (req, res) => {
         const uniqueFileName = `slika-kursa-${Date.now()}-${req.file.originalname.replace(/\s/g, '_')}`;
         const slikaUrl = await uploadToBunny(req.file.buffer, uniqueFileName);
 
-        const kursQuery = 'INSERT INTO kursevi (naziv, opis, instruktor_id, cena, slika, is_subscription, lemon_squeezy_variant_id) VALUES (?, ?, ?, ?, ?, ?, ?)';
-        const [kursResult] = await connection.query(kursQuery, [naziv, opis, instruktor_id, cena, slikaUrl, is_subscription || 0, lemon_squeezy_variant_id]);
+        const kursQuery = 'INSERT INTO kursevi (naziv, opis, instruktor_id, cena, slika, is_subscription, payhip_product_id) VALUES (?, ?, ?, ?, ?, ?, ?)';
+        const [kursResult] = await connection.query(kursQuery, [naziv, opis, instruktor_id, cena, slikaUrl, is_subscription || 0, payhip_product_id]);
         const noviKursId = kursResult.insertId;
 
         if (Array.isArray(sekcije) && sekcije.length > 0) {
@@ -88,7 +88,7 @@ router.post('/', upload.single('slika'), async (req, res) => {
 router.put('/:id', upload.single('slika'), async (req, res) => {
     try {
         const courseId = req.params.id;
-        const { naziv, opis, cena, instruktor_id, is_subscription, lemon_squeezy_variant_id } = req.body;
+        const { naziv, opis, cena, instruktor_id, is_subscription, payhip_product_id } = req.body;
 
         const fieldsToUpdate = {};
         if (naziv) fieldsToUpdate.naziv = naziv;
@@ -96,7 +96,7 @@ router.put('/:id', upload.single('slika'), async (req, res) => {
         if (cena) fieldsToUpdate.cena = cena;
         if (instruktor_id) fieldsToUpdate.instruktor_id = instruktor_id;
         if (is_subscription !== undefined) fieldsToUpdate.is_subscription = is_subscription;
-        if (lemon_squeezy_variant_id) fieldsToUpdate.lemon_squeezy_variant_id = lemon_squeezy_variant_id;
+        if (payhip_product_id) fieldsToUpdate.payhip_product_id = payhip_product_id;
 
         if (req.file) {
             const uniqueFileName = `slika-kursa-${Date.now()}-${req.file.originalname.replace(/\s/g, '_')}`;
