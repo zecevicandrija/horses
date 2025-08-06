@@ -19,7 +19,7 @@ const webhooksRouter = require('./routes/webhooks');
 const sekcijeRouter = require('./routes/sekcije');
 
 const app = express();
-const port = process.env.PORT || 3306;
+const port = process.env.PORT || 5000;
 
 // Middleware
 
