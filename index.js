@@ -19,13 +19,14 @@ const webhooksRouter = require('./routes/webhooks');
 const sekcijeRouter = require('./routes/sekcije');
 
 const app = express();
-const port = process.env.PORT || 5000;;
+const port = process.env.PORT || 3306;
 
 // Middleware
 
 // Definišemo listu dozvoljenih adresa
 const allowedOrigins = [
-    'http://localhost:3000'
+    'https://motionakademija.com',
+    'https://www.motionakademija.com'
 ];
 
 app.use(cors({
