@@ -35,7 +35,7 @@ const allowedOrigins = [
 app.use(cors({ origin: allowedOrigins }));
 
 // 🔹 Paddle webhooks moraju da koriste RAW BODY pre nego što globalni parser upadne
-app.use('/api/webhooks', express.raw({ type: '*/*' }), webhooksRouter);
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhooksRouter);
 
 // 🔹 Sve ostale rute mogu da koriste JSON parser
 app.use(express.json());
