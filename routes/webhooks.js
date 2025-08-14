@@ -76,6 +76,68 @@ async function getTransactionById(transactionId) {
     }
 }
 
+// --- Funkcija za verifikaciju potpisa (na osnovu Paddle dokumentacije) ---
+function verifyWebhookSignature(rawBody, signature, secret) {
+    try {
+        // 1. Parse signature header
+        const sigElements = signature.split(';');
+        let timestamp = null;
+        let signatures = [];
+        
+        for (const element of sigElements) {
+            const [key, value] = element.split('=');
+            if (key === 'ts') {
+                timestamp = value;
+            } else if (key.startsWith('h1')) {
+                signatures.push(value);
+            }
+        }
+
+        if (!timestamp || signatures.length === 0) {
+            console.error('❌ Nema timestamp ili potpis u header-u');
+            return false;
+        }
+
+        // 2. Build signed payload: timestamp:body (VAŽNO: dvotačka, ne tačka!)
+        const signedPayload = `${timestamp}:${rawBody.toString('utf8')}`;
+        
+        console.log('DEBUG - Timestamp:', timestamp);
+        console.log('DEBUG - Body length:', rawBody.length);
+        console.log('DEBUG - Signed payload preview:', signedPayload.substring(0, 100) + '...');
+        
+        // 3. Generate expected signature
+        const hmac = crypto.createHmac('sha256', secret);
+        hmac.update(signedPayload, 'utf8');
+        const expectedSignature = hmac.digest('hex');
+        
+        console.log('DEBUG - Expected signature:', expectedSignature);
+        console.log('DEBUG - Received signatures:', signatures);
+        
+        // 4. Compare signatures (timing-safe comparison)
+        for (const sig of signatures) {
+            try {
+                const expectedBuffer = Buffer.from(expectedSignature, 'hex');
+                const receivedBuffer = Buffer.from(sig, 'hex');
+                
+                if (expectedBuffer.length === receivedBuffer.length && 
+                    crypto.timingSafeEqual(expectedBuffer, receivedBuffer)) {
+                    console.log('✅ Potpis je validan!');
+                    return true;
+                }
+            } catch (compareError) {
+                console.error('Greška pri poređenju potpisa:', compareError);
+            }
+        }
+        
+        console.error('❌ Nijedan potpis se ne poklapa!');
+        return false;
+        
+    } catch (error) {
+        console.error('❌ Greška pri verifikaciji potpisa:', error);
+        return false;
+    }
+}
+
 // --- Funkcija za obradu subscription.created događaja ---
 async function handleSubscriptionCreated(subscriptionData, connection) {
     try {
@@ -264,44 +326,22 @@ router.post('/paddle', async (req, res) => {
         return res.status(400).send('Verification data missing.');
     }
 
+    // Verifikacija potpisa koristeći Paddle dokumentaciju
+    if (!verifyWebhookSignature(rawBody, signatureHeader, webhookSecret)) {
+        console.error('❌ Verifikacija potpisa neuspešna!');
+        return res.status(400).send('Signature verification failed.');
+    }
+
     try {
-        // RUČNA VERIFIKACIJA POTPISA
-        const parts = signatureHeader.split(';').reduce((acc, part) => {
-            const [key, value] = part.split('=');
-            if (key && value) acc[key.trim()] = value.trim();
-            return acc;
-        }, {});
-        
-        const timestamp = parts['ts'];
-        const signature = parts['h1'];
-        
-        if (!timestamp || !signature) {
-            throw new Error('Timestamp ili potpis nedostaju.');
-        }
-
-        const signedPayload = `${timestamp}.${rawBody.toString('utf8')}`;
-        const hmac = crypto.createHmac('sha256', webhookSecret);
-        hmac.update(signedPayload);
-        const generatedSignature = hmac.digest('hex');
-
-        if (generatedSignature !== signature) {
-            console.error('❌ Potpisi se ne poklapaju!');
-            console.error('Očekivani:', signature);
-            console.error('Generisan:', generatedSignature);
-            return res.status(400).send('Signature mismatch.');
-        }
-
-        console.log('✅ Potpis je validan!');
-        
         // Parsiranje event-a
         const event = JSON.parse(rawBody.toString('utf8'));
         const eventType = event.event_type;
         
         console.log(`Event tip: ${eventType}`);
-        console.log('Event podaci:', JSON.stringify(event.data, null, 2));
+        console.log('Event podaci (kratak):', JSON.stringify(event.data, null, 2).substring(0, 500));
 
         // Odmah odgovori Paddle-u
-        res.status(200).send('Webhook successfully verified.');
+        res.status(200).send('Webhook successfully verified and processed.');
         
         // Obrada u pozadini
         const connection = await db.getConnection();
