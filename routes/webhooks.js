@@ -93,7 +93,7 @@ router.post('/paddle', async (req, res) => {
     console.log('Da li req.rawBody postoji?', !!req.rawBody);
     const signatureHeader = req.get('Paddle-Signature') || '';
     const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET;
-    const rawBody = req.body;  // Koristimo req.rawBody koji smo sačuvali u index.js
+    const rawBody = req.rawBody;
 
     if (!rawBody || !webhookSecret || !signatureHeader) {
         return res.status(400).send('Verification data missing.');
@@ -120,11 +120,10 @@ router.post('/paddle', async (req, res) => {
         }
 
         console.log('✅ Potpis je validan! Webhook je autentičan.');
-        
+        const event = JSON.parse(rawBody.toString('utf8')); // kad želimo podatke
         const eventType = event.event_type;
         
         res.status(200).send('Webhook successfully verified.');
-        const event = JSON.parse(rawBody.toString('utf8'));
         
         // Obrada u pozadini
         const connection = await db.getConnection();
