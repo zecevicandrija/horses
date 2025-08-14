@@ -29,9 +29,8 @@ const port = process.env.PORT || 5000;
 
 // 1. CORS se primenjuje na sve zahteve, pa ide prvi
 const allowedOrigins = [
-    'http://localhost:3000',
-    'https://0de59136e955.ngrok-free.app',
-    'https.80fd4f5517d7.ngrok-free.app'
+    'https://learningplatform1.netlify.app',
+    'https://learningplatform1.netlify.app/'
 ];
 app.use(cors({ origin: allowedOrigins }));
 
