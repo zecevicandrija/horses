@@ -1,12 +1,13 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-// body-parser je sada ugrađen u Express
+// body-parser je sada ugrađen u Express, ne treba vam poseban import
+// const bodyParser = require('body-parser'); 
 const db = require('./db');
 
 // Uvoz svih vaših ruta
 const authRouter = require('./routes/auth');
-const korisniciRouter = require('./routes/korisnici');
+const korisniciRouter = require('./routes/korisnici'); 
 const kurseviRouter = require('./routes/kursevi');
 const lekcijeRouter = require('./routes/lekcije');
 const wishlistRouter = require('./routes/wishlist');
@@ -26,25 +27,30 @@ const port = process.env.PORT || 5000;
 
 // === Middleware ===
 
-// 1. CORS za sve zahteve
+// 1. CORS se primenjuje na sve zahteve, pa ide prvi
 const allowedOrigins = [
     'https://learningplatform1.netlify.app',
     'https://learningplatform1.netlify.app/'
 ];
 app.use(cors({ origin: allowedOrigins }));
 
-app.use('/api/webhooks/paddle', (req, res, next) => {
-  console.log('WEBHOOK incoming request content-type:', req.headers['content-type']);
-  next();
-}, express.raw({ type: '*/*' }));
+app.use(express.json({
+  verify: (req, res, buf, encoding) => {
+    console.log('--- Verify funkcija POKRENUTA ---');
+    console.log('URL zahteva:', req.originalUrl);
+    if (req.originalUrl.startsWith('/api/webhooks')) {
+      console.log('✅ URL se poklapa! Čuvam rawBody.');
+      req.rawBody = buf;
+      console.log('Sačuvan Buffer (prvih 20 bajtova):', buf.slice(0, 20).toString('hex'));
+    }
+  },
+}));
 
-app.use('/api/webhooks', webhooksRouter);
-
-// 3. Globalni body parseri za ostale rute
-app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 4. Sve ostale API rute
+
+// 4. Sve ostale API rute idu na kraju
+app.use('/api/webhooks', webhooksRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/korisnici', korisniciRouter);
 app.use('/api/kursevi', kurseviRouter);
@@ -59,6 +65,7 @@ app.use('/api/rezultati_kviza', rezultatiKvizaRouter);
 app.use('/api/placanje', placanjeRouter);
 app.use('/api/sekcije', sekcijeRouter);
 app.use('/api/paddle', paddlePaylinkRouter);
+
 
 // Start server
 app.listen(port, () => {
