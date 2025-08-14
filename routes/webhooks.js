@@ -1,38 +1,212 @@
 // backend/routes/webhooks.js
+
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const generateRandomPassword = require('../utils/passwordGenerator');
 const { Resend } = require('resend');
+const { Paddle, EventName, Environment } = require('@paddle/paddle-node-sdk');
 const crypto = require('crypto');
 
+// --- Helper funkcije ---
+
 const PLAN_MAP = {
-    'pri_01k2mcmvyc542sjay9hz1gvz9s': { name: 'Standard', months: 1 },
-    'pri_01k2mcnd83jsvxf34xx3k59jtv': { name: 'Pro', months: 3 },
+    'pri_01k2mcmvyc542sjay9hz1gvz9s': { name: 'monthly', months: 1 },
+    'pri_01k2mcnd83jsvxf34xx3k59jtv': { name: 'quarterly', months: 3 },
 };
 
-async function handleSuccessfulPurchase(transaction, connection) {
-    if (!transaction?.customer?.email) return;
+const paddle = new Paddle(process.env.PADDLE_API_KEY || '', {
+    environment: process.env.PADDLE_ENV === 'production' ? Environment.production : Environment.sandbox,
+});
+
+async function sendWelcomeEmail(toEmail, plainPassword, firstName = 'Korisnik') {
+    if (!process.env.RESEND_API_KEY) {
+        console.warn('RESEND_API_KEY nije postavljen - preskačem slanje mejla.');
+        return false;
+    }
+    try {
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const html = `
+          <div style="background-color:#121212;padding:40px 0;text-align:center;font-family:'Segoe UI', Roboto, Arial, sans-serif;">
+            <div style="max-width:600px;margin:0 auto;background:#1e1e1e;padding:30px;border-radius:12px;color:#fff;">
+              <h1 style="color:#ff3c00">Dobrodošao, ${firstName}!</h1>
+              <p>Tvoj nalog je kreiran. Evo podataka za prijavu:</p>
+              <p><strong>Email:</strong> ${toEmail}</p>
+              <p><strong>Lozinka:</strong> <span style="color:#ff3c00">${plainPassword}</span></p>
+              <p>Link za prijavu: https://motionakademija.com/login</p>
+            </div>
+          </div>
+        `;
+        await resend.emails.send({
+            from: 'MotionAcademy <office@motionakademija.com>',
+            to: toEmail,
+            subject: 'Dobrodošli u Motion Akademiju! Vaš nalog je kreiran.',
+            html
+        });
+        return true;
+    } catch (err) {
+        console.error('Greška pri slanju email-a (Resend):', err.message);
+        return false;
+    }
+}
+
+// Funkcija za dobijanje customer podataka preko Paddle API-ja
+async function getCustomerById(customerId) {
+    try {
+        const customer = await paddle.customers.get(customerId);
+        return customer;
+    } catch (error) {
+        console.error('Greška pri dobijanju customer podataka:', error);
+        return null;
+    }
+}
+
+// Funkcija za dobijanje transaction podataka preko Paddle API-ja
+async function getTransactionById(transactionId) {
+    try {
+        const transaction = await paddle.transactions.get(transactionId);
+        return transaction;
+    } catch (error) {
+        console.error('Greška pri dobijanju transaction podataka:', error);
+        return null;
+    }
+}
+
+// --- Funkcija za obradu subscription.created događaja ---
+async function handleSubscriptionCreated(subscriptionData, connection) {
+    try {
+        console.log('=== OBRADA SUBSCRIPTION.CREATED ===');
+        
+        // Dobijamo customer podatke preko Paddle API-ja
+        const customer = await getCustomerById(subscriptionData.customer_id);
+        if (!customer || !customer.email) {
+            console.warn('Ne mogu da dohvatim customer podatke ili email ne postoji.');
+            return;
+        }
+
+        const customerEmail = customer.email.toLowerCase();
+        const customerName = customer.name || 'Korisnik';
+        const kursId = 1; // Fiksni ID za tvoj kurs
+
+        console.log(`Customer podaci - Email: ${customerEmail}, Ime: ${customerName}`);
+
+        // Izračunavanje datuma isteka na osnovu subscription podataka
+        let expiryDate = new Date();
+        if (subscriptionData.next_billed_at) {
+            expiryDate = new Date(subscriptionData.next_billed_at);
+        } else {
+            // Fallback na osnovu price_id iz subscription items
+            const priceId = subscriptionData.items?.[0]?.price?.id;
+            if (priceId && PLAN_MAP[priceId]) {
+                expiryDate.setMonth(expiryDate.getMonth() + PLAN_MAP[priceId].months);
+            } else {
+                expiryDate.setMonth(expiryDate.getMonth() + 1);
+                console.warn(`Price ID '${priceId}' nije pronađen u PLAN_MAP. Postavljen fallback na 1 mesec.`);
+            }
+        }
+
+        console.log(`Datum isteka pretplate: ${expiryDate.toISOString()}`);
+
+        // Provera da li korisnik postoji (UPSERT logika)
+        const [existingUsers] = await connection.query('SELECT id FROM korisnici WHERE email = ?', [customerEmail]);
+        let userId;
+
+        if (existingUsers.length > 0) {
+            // KORISNIK POSTOJI: Ažuriraj mu datum isteka pretplate
+            userId = existingUsers[0].id;
+            await connection.query(
+                'UPDATE korisnici SET subscription_expires_at = ?, paddle_customer_id = ? WHERE id = ?', 
+                [expiryDate, subscriptionData.customer_id, userId]
+            );
+            console.log(`Ažuriran postojeći korisnik (ID=${userId}) sa novim datumom isteka: ${expiryDate.toISOString()}`);
+        } else {
+            // KORISNIK NE POSTOJI: Kreiraj novi nalog
+            const password = generateRandomPassword();
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const [ime, ...prezimeParts] = customerName.split(/\s+/);
+            const prezime = prezimeParts.join(' ') || ime;
+
+            const [newUserResult] = await connection.query(
+                'INSERT INTO korisnici (ime, prezime, email, sifra, uloga, subscription_expires_at, paddle_customer_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [ime, prezime, customerEmail, hashedPassword, 'korisnik', expiryDate, subscriptionData.customer_id]
+            );
+            userId = newUserResult.insertId;
+            console.log(`Kreiran novi korisnik ID=${userId}, email=${customerEmail}, pretplata ističe=${expiryDate.toISOString()}`);
+            
+            // Pošalji welcome email
+            await sendWelcomeEmail(customerEmail, password, ime);
+        }
+
+        // DODELA PRISTUPA KURSU
+        await connection.query(
+            'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE datum_kupovine=NOW()',
+            [userId, kursId]
+        );
+        console.log(`Korisniku ID ${userId} je dodeljen/ažuriran pristup kursu ID ${kursId}.`);
+        
+        // Upis u `transakcije` tabelu za evidenciju (ako imamo transaction_id)
+        if (subscriptionData.transaction_id) {
+            const transaction = await getTransactionById(subscriptionData.transaction_id);
+            const amount = transaction ? (transaction.details.totals.total / 100) : 0;
+            const currency = subscriptionData.currency_code || 'USD';
+            
+            await connection.query(
+                'INSERT INTO transakcije (provider_order_id, korisnik_id, kurs_id, iznos, valuta, status_placanja, podaci_kupca) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [
+                    subscriptionData.id,
+                    userId,
+                    kursId,
+                    amount,
+                    currency,
+                    subscriptionData.status,
+                    JSON.stringify(subscriptionData)
+                ]
+            );
+            console.log(`Evidentirana subscription ${subscriptionData.id} za korisnika ID ${userId}.`);
+        }
+
+        console.log('=== SUBSCRIPTION.CREATED USPEŠNO OBRAĐEN ===');
+        
+    } catch (error) {
+        console.error('Greška u handleSubscriptionCreated:', error);
+        throw error;
+    }
+}
+
+// --- Funkcija za obradu transaction.completed događaja ---
+async function handleTransactionCompleted(transaction, connection) {
+    if (!transaction || !transaction.customer || !transaction.customer.email) {
+        console.warn('handleTransactionCompleted: Transakcija nema email kupca, preskače se.');
+        return;
+    }
 
     const customerEmail = transaction.customer.email.toLowerCase();
     const customerName = transaction.customer.name || 'Korisnik';
-    const kursId = 1;
+    const kursId = 1; // Fiksni ID za tvoj kurs
 
+    // Izračunavanje datuma isteka
     let expiryDate = new Date();
     const priceId = transaction.items?.[0]?.price_id;
-    expiryDate.setMonth(expiryDate.getMonth() + (PLAN_MAP[priceId]?.months || 1));
+    if (priceId && PLAN_MAP[priceId]) {
+        expiryDate.setMonth(expiryDate.getMonth() + PLAN_MAP[priceId].months);
+    } else {
+        expiryDate.setMonth(expiryDate.getMonth() + 1);
+        console.warn(`Price ID '${priceId}' nije pronađen u PLAN_MAP. Postavljen fallback na 1 mesec.`);
+    }
 
+    // Provera da li korisnik postoji (UPSERT logika)
     const [existingUsers] = await connection.query('SELECT id FROM korisnici WHERE email = ?', [customerEmail]);
     let userId;
 
     if (existingUsers.length > 0) {
         userId = existingUsers[0].id;
         await connection.query('UPDATE korisnici SET subscription_expires_at = ? WHERE id = ?', [expiryDate, userId]);
+        console.log(`Ažuriran postojeći korisnik (ID=${userId}) sa novim datumom isteka: ${expiryDate.toISOString()}`);
     } else {
         const password = generateRandomPassword();
         const hashedPassword = await bcrypt.hash(password, 10);
-        const [ime, ...prezimeParts] = customerName.split(' ');
+        const [ime, ...prezimeParts] = customerName.split(/\s+/);
         const prezime = prezimeParts.join(' ') || ime;
 
         const [newUserResult] = await connection.query(
@@ -40,78 +214,135 @@ async function handleSuccessfulPurchase(transaction, connection) {
             [ime, prezime, customerEmail, hashedPassword, 'korisnik', expiryDate]
         );
         userId = newUserResult.insertId;
-
-        try {
-            const resend = new Resend(process.env.RESEND_API_KEY);
-            await resend.emails.send({
-                from: 'MotionAcademy <office@motionakademija.com>',
-                to: customerEmail,
-                subject: 'Dobrodošli u Motion Akademiju!',
-                html: `<p>Vaši podaci za prijavu:</p><p>Email: ${customerEmail}</p><p>Lozinka: <strong>${password}</strong></p>`
-            });
-        } catch (emailError) {
-            console.error("Greška pri slanju email-a:", emailError);
-        }
+        console.log(`Kreiran novi korisnik ID=${userId}, email=${customerEmail}, pretplata ističe=${expiryDate.toISOString()}`);
+        
+        await sendWelcomeEmail(customerEmail, password, ime);
     }
 
-    await connection.query('INSERT INTO kupovina (korisnik_id, kurs_id) VALUES (?, ?)', [userId, kursId]);
-
+    // DODELA PRISTUPA KURSU
+    await connection.query(
+        'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE datum_kupovine=NOW()',
+        [userId, kursId]
+    );
+    console.log(`Korisniku ID ${userId} je dodeljen/ažuriran pristup kursu ID ${kursId}.`);
+    
+    // Upis u `transakcije` tabelu za evidenciju
     await connection.query(
         'INSERT INTO transakcije (provider_order_id, korisnik_id, kurs_id, iznos, valuta, status_placanja, podaci_kupca) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
-            transaction.id, userId, kursId,
+            transaction.id,
+            userId,
+            kursId,
             (transaction.details.totals.total / 100),
-            transaction.currency_code, transaction.status,
+            transaction.currency_code,
+            transaction.status,
             JSON.stringify(transaction)
         ]
     );
+    console.log(`Evidentirana transakcija ${transaction.id} za korisnika ID ${userId}.`);
 }
 
+// --- Glavni Webhook Ruter ---
 router.post('/paddle', async (req, res) => {
-    const rawBody = req.body; // Express raw middleware će ovo biti Buffer
+    console.log('=== WEBHOOK PRIMLJEN ===');
     const signatureHeader = req.get('Paddle-Signature') || '';
     const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET;
+    
+    // req.body je već raw Buffer zbog middleware-a u index.js
+    const rawBody = req.rawBody || req.body;
+
+    console.log('Signature header:', signatureHeader);
+    console.log('Raw body type:', typeof rawBody);
+    console.log('Raw body length:', rawBody ? rawBody.length : 'undefined');
 
     if (!rawBody || !webhookSecret || !signatureHeader) {
+        console.error('Nedostaju podaci za verifikaciju');
         return res.status(400).send('Verification data missing.');
     }
 
     try {
+        // RUČNA VERIFIKACIJA POTPISA
         const parts = signatureHeader.split(';').reduce((acc, part) => {
             const [key, value] = part.split('=');
             if (key && value) acc[key.trim()] = value.trim();
             return acc;
         }, {});
+        
         const timestamp = parts['ts'];
         const signature = parts['h1'];
-        const signedPayload = `${timestamp}.${rawBody.toString('utf8')}`;
+        
+        if (!timestamp || !signature) {
+            throw new Error('Timestamp ili potpis nedostaju.');
+        }
 
+        const signedPayload = `${timestamp}.${rawBody.toString('utf8')}`;
         const hmac = crypto.createHmac('sha256', webhookSecret);
         hmac.update(signedPayload);
         const generatedSignature = hmac.digest('hex');
 
         if (generatedSignature !== signature) {
+            console.error('❌ Potpisi se ne poklapaju!');
+            console.error('Očekivani:', signature);
+            console.error('Generisan:', generatedSignature);
             return res.status(400).send('Signature mismatch.');
         }
 
+        console.log('✅ Potpis je validan!');
+        
+        // Parsiranje event-a
         const event = JSON.parse(rawBody.toString('utf8'));
-        res.status(200).send('OK');
+        const eventType = event.event_type;
+        
+        console.log(`Event tip: ${eventType}`);
+        console.log('Event podaci:', JSON.stringify(event.data, null, 2));
 
+        // Odmah odgovori Paddle-u
+        res.status(200).send('Webhook successfully verified.');
+        
+        // Obrada u pozadini
         const connection = await db.getConnection();
         await connection.beginTransaction();
+        
         try {
-            if (event.event_type === 'transaction.completed') {
-                await handleSuccessfulPurchase(event.data, connection);
+            console.log(`=== OBRADA DOGAĐAJA: ${eventType} ===`);
+            
+            switch (eventType) {
+                case 'subscription.created':
+                case 'subscription.activated':
+                    await handleSubscriptionCreated(event.data, connection);
+                    break;
+                
+                case 'transaction.completed':
+                    await handleTransactionCompleted(event.data, connection);
+                    break;
+                
+                case 'subscription.updated':
+                    const sub = event.data;
+                    if (sub.customer_id && sub.next_billed_at) {
+                        await connection.query(
+                            'UPDATE korisnici SET subscription_expires_at = ? WHERE paddle_customer_id = ?',
+                            [new Date(sub.next_billed_at), sub.customer_id]
+                        );
+                        console.log(`Ažuriran subscription za customer_id: ${sub.customer_id}`);
+                    }
+                    break;
+                
+                default:
+                    console.log(`Događaj '${eventType}' primljen, ali se ignoriše.`);
             }
+            
             await connection.commit();
+            console.log('=== OBRADA USPEŠNO ZAVRŠENA ===');
+            
         } catch (err) {
             await connection.rollback();
-            console.error('DB Error:', err);
+            console.error('Greška pri obradi događaja u bazi:', err);
         } finally {
-            connection.release();
+            if (connection) connection.release();
         }
+        
     } catch (error) {
-        console.error('Webhook error:', error);
+        console.error('🔴 Greška pri webhook obradi:', error.message);
         return res.status(400).send('Webhook processing failed.');
     }
 });

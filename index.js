@@ -34,11 +34,18 @@ const allowedOrigins = [
 ];
 app.use(cors({ origin: allowedOrigins }));
 
-// 🔹 Paddle webhooks moraju da koriste RAW BODY pre nego što globalni parser upadne
-app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhooksRouter);
+app.use(express.json({
+  verify: (req, res, buf, encoding) => {
+    console.log('--- Verify funkcija POKRENUTA ---');
+    console.log('URL zahteva:', req.originalUrl);
+    if (req.originalUrl.startsWith('/api/webhooks')) {
+      console.log('✅ URL se poklapa! Čuvam rawBody.');
+      req.rawBody = buf;
+      console.log('Sačuvan Buffer (prvih 20 bajtova):', buf.slice(0, 20).toString('hex'));
+    }
+  },
+}));
 
-// 🔹 Sve ostale rute mogu da koriste JSON parser
-app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
