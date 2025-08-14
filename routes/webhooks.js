@@ -1,5 +1,3 @@
-// backend/routes/webhooks.js
-
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
@@ -12,20 +10,21 @@ const paddle = new Paddle({
     apiKey: process.env.PADDLE_API_KEY
 });
 
-// Middleware za sirovi body, specifičan samo za ovaj ruter
-router.use(express.raw({ type: 'application/json' }));
-
 router.post('/paddle', async (req, res) => {
     const signature = req.get('Paddle-Signature');
-    const rawBody = req.body;
     const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET;
+
+    // Ključna izmena: Konvertujemo Buffer u string
+    const rawRequestBody = req.body.toString('utf8');
 
     let connection;
     let event;
 
     try {
-        event = paddle.webhooks.unmarshal(rawBody, signature, webhookSecret);
+        // Prosleđujemo string umesto sirovog body-ja
+        event = paddle.webhooks.unmarshal(rawRequestBody, webhookSecret, signature);
         console.log(`✅ Primljen Paddle događaj: ${event.eventType}`);
+
     } catch (err) {
         console.error('❌ Neuspešna verifikacija webhooka:', err.message);
         return res.status(400).send('Webhook signature verification failed.');
@@ -51,7 +50,7 @@ router.post('/paddle', async (req, res) => {
                 } else if (billingPeriod && billingPeriod.interval === 'year') {
                     expiryDate.setFullYear(expiryDate.getFullYear() + billingPeriod.frequency);
                 } else {
-                    expiryDate.setFullYear(expiryDate.getFullYear() + 100); // Doživotni pristup
+                    expiryDate.setFullYear(expiryDate.getFullYear() + 100);
                 }
 
                 const [existingUsers] = await connection.query('SELECT id FROM korisnici WHERE email = ?', [customerEmail]);
@@ -78,7 +77,7 @@ router.post('/paddle', async (req, res) => {
                     );
                     userId = newUserResult.insertId;
 
-                    // Logika za slanje emaila dobrodošlice...
+                    // Ovde ide vaša logika za slanje emaila dobrodošlice
                 }
 
                 await connection.query('INSERT INTO kupovina (korisnik_id, kurs_id) VALUES (?, ?)', [userId, kursId]);
@@ -88,9 +87,7 @@ router.post('/paddle', async (req, res) => {
                 );
                 break;
 
-            case EventName.SubscriptionCanceled:
-                // Logika za otkazivanje pretplate...
-                break;
+            // Ovde možete dodati druge case-ove po potrebi
             
             default:
                 console.log(`Primljen neobrađen događaj: ${event.eventType}`);
