@@ -1,8 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-// body-parser je sada ugrađen u Express, ne treba vam poseban import
-// const bodyParser = require('body-parser'); 
 const db = require('./db');
 
 // Uvoz svih vaših ruta
@@ -34,23 +32,14 @@ const allowedOrigins = [
 ];
 app.use(cors({ origin: allowedOrigins }));
 
-app.use(express.json({
-  verify: (req, res, buf, encoding) => {
-    console.log('--- Verify funkcija POKRENUTA ---');
-    console.log('URL zahteva:', req.originalUrl);
-    if (req.originalUrl.startsWith('/api/webhooks')) {
-      console.log('✅ URL se poklapa! Čuvam rawBody.');
-      req.rawBody = buf;
-      console.log('Sačuvan Buffer (prvih 20 bajtova):', buf.slice(0, 20).toString('hex'));
-    }
-  },
-}));
+// 2. PRVO: Webhook ruta sa raw body parserom (MORA biti pre express.json!)
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhooksRouter);
 
+// 3. ZATIM: JSON parser za sve ostale rute
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
-// 4. Sve ostale API rute idu na kraju
-app.use('/api/webhooks', webhooksRouter);
+// 4. Sve ostale API rute
 app.use('/api/auth', authRouter);
 app.use('/api/korisnici', korisniciRouter);
 app.use('/api/kursevi', kurseviRouter);
@@ -65,7 +54,6 @@ app.use('/api/rezultati_kviza', rezultatiKvizaRouter);
 app.use('/api/placanje', placanjeRouter);
 app.use('/api/sekcije', sekcijeRouter);
 app.use('/api/paddle', paddlePaylinkRouter);
-
 
 // Start server
 app.listen(port, () => {

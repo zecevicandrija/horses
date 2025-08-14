@@ -14,6 +14,9 @@ const crypto = require('crypto');
 const PLAN_MAP = {
     'pri_01k2mcmvyc542sjay9hz1gvz9s': { name: 'monthly', months: 1 },
     'pri_01k2mcnd83jsvxf34xx3k59jtv': { name: 'quarterly', months: 3 },
+    // Dodajte ovde price_id-jeve iz vašeg test webhook-a ako su različiti
+    'pri_01gsz8x8sawmvhz1pv30nge1ke': { name: 'monthly', months: 1 }, // Iz test podataka
+    'pri_01h1vjfevh5etwq3rb416a23h2': { name: 'addon', months: 1 }, // Addon iz test podataka
 };
 
 const paddle = new Paddle(process.env.PADDLE_API_KEY || '', {
@@ -248,12 +251,13 @@ router.post('/paddle', async (req, res) => {
     const signatureHeader = req.get('Paddle-Signature') || '';
     const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET;
     
-    // req.body je već raw Buffer zbog middleware-a u index.js
-    const rawBody = req.rawBody || req.body;
+    // req.body je raw Buffer zbog express.raw() middleware-a
+    const rawBody = req.body;
 
     console.log('Signature header:', signatureHeader);
     console.log('Raw body type:', typeof rawBody);
     console.log('Raw body length:', rawBody ? rawBody.length : 'undefined');
+    console.log('Raw body je Buffer?', Buffer.isBuffer(rawBody));
 
     if (!rawBody || !webhookSecret || !signatureHeader) {
         console.error('Nedostaju podaci za verifikaciju');
