@@ -12,21 +12,21 @@ const paddle = new Paddle({
     apiKey: process.env.PADDLE_API_KEY
 });
 
-// Middleware za sirov body se primenjuje na nivou applikacije (u index.js)
-// Ne treba ga definisati ponovo ovde.
+// Middleware za sirov body se primenjuje na nivou aplikacije (u index.js),
+// tako da ga ovde ne treba ponovo definisati.
 
 router.post('/paddle', async (req, res) => {
     const signature = req.get('Paddle-Signature');
     const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET;
-    // Telo zahteva mora biti konvertovano u string radi provere
-    const rawRequestBody = req.body.toString('utf8');
+    // Telo zahteva (Buffer) koristimo direktno, bez konverzije u string.
+    const rawBody = req.body; 
 
     let connection;
     let event;
 
     try {
         // 1. Verifikacija potpisa
-        event = paddle.webhooks.unmarshal(rawRequestBody, webhookSecret, signature);
+        event = paddle.webhooks.unmarshal(rawBody, webhookSecret, signature);
     } catch (err) {
         console.error('❌ Neuspešna verifikacija webhooka:', err.message);
         // Ako potpis nije validan, odmah prekidamo
