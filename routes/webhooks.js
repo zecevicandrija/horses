@@ -42,7 +42,7 @@ async function sendWelcomeEmail(toEmail, plainPassword, firstName = 'Korisnik') 
           </div>
         `;
         await resend.emails.send({
-            from: 'MotionAcademy <office@motionakademija.com>',
+            from: 'MotionAcademy <office@undovrbas.com>',
             to: toEmail,
             subject: 'Dobrodošli u Motion Akademiju! Vaš nalog je kreiran.',
             html
