@@ -33,7 +33,12 @@ const allowedOrigins = [
 ];
 app.use(cors({ origin: allowedOrigins }));
 
-app.use('/api/webhooks', express.raw({ type: '*/*' }), webhooksRouter);
+app.use('/api/webhooks/paddle', (req, res, next) => {
+  console.log('WEBHOOK incoming request content-type:', req.headers['content-type']);
+  next();
+}, express.raw({ type: '*/*' }));
+
+app.use('/api/webhooks', webhooksRouter);
 
 // 3. Globalni body parseri za ostale rute
 app.use(express.json());
