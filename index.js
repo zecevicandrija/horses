@@ -27,8 +27,9 @@ const port = process.env.PORT || 5000;
 
 // 1. CORS se primenjuje na sve zahteve, pa ide prvi
 const allowedOrigins = [
-    'https://learningplatform1.netlify.app',
-    'https://learningplatform1.netlify.app/'
+    'https://motionakademija.com',
+    'https://api.motionakademija.com',
+    'https://motionakademija.com/'
 ];
 app.use(cors({ origin: allowedOrigins }));
 
