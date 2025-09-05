@@ -12,6 +12,11 @@ router.get('/user/:korisnikId', async (req, res) => {
             FROM kursevi k
             INNER JOIN kupovina p ON k.id = p.kurs_id
             WHERE p.korisnik_id = ?
+            AND p.datum_kupovine = (
+                SELECT MAX(datum_kupovine) 
+                FROM kupovina 
+                WHERE korisnik_id = p.korisnik_id AND kurs_id = p.kurs_id
+  )
         `;
         const [results] = await db.query(query, [korisnikId]);
         res.status(200).json(results);

@@ -233,8 +233,8 @@ async function handleSubscriptionCreated(subscriptionData, connection) {
         // Dodela/obnova pristupa kursu (INSERT/ON DUPLICATE)
         const priceIdFromSub = subscriptionData.items?.[0]?.price?.id || null;
         await connection.query(
-            'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine, price_id) VALUES (?, ?, NOW(), ?) ON DUPLICATE KEY UPDATE datum_kupovine = NOW(), price_id = COALESCE(price_id, VALUES(price_id))',
-            [userId, kursId, priceIdFromSub]
+            'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine, price_id) VALUES (?, ?, NOW(), ?) ON DUPLICATE KEY UPDATE datum_kupovine = NOW(), price_id = COALESCE(?, price_id)',
+            [userId, kursId, priceIdFromSub, priceIdFromSub]
         );
 
         // Upis u transakcije ako imamo transaction_id
@@ -412,8 +412,8 @@ async function handleTransactionCompleted(transaction, connection) {
         const priceIdFromTx = transaction.items?.[0]?.price_id || null;
         // Dodela pristupa kursu
         await connection.query(
-            'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine, price_id) VALUES (?, ?, NOW(), ?) ON DUPLICATE KEY UPDATE datum_kupovine = NOW(), price_id = COALESCE(price_id, VALUES(price_id))',
-            [userId, kursId, priceIdFromTx]
+            'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine, price_id) VALUES (?, ?, NOW(), ?) ON DUPLICATE KEY UPDATE datum_kupovine = NOW(), price_id = COALESCE(?, price_id)',
+            [userId, kursId, priceIdFromTx, priceIdFromTx]
         );
 
         // Upis u transakcije
@@ -572,9 +572,25 @@ router.post('/paddle', async (req, res) => {
         // Parsiranje event-a
         const event = JSON.parse(rawBody.toString('utf8'));
         const eventType = event.event_type;
+        const eventId = event.id; // Paddle event ID
         
-        console.log(`Event tip: ${eventType}`);
+        console.log(`Event tip: ${eventType}, Event ID: ${eventId}`);
         console.log('Event podaci (kratak):', JSON.stringify(event.data, null, 2).substring(0, 500));
+
+        // Provera da li je event već obrađen - koristimo posebnu konekciju da ne bi ometali glavnu transakciju
+        const connectionCheck = await db.getConnection();
+        try {
+            const [existingEvents] = await connectionCheck.query(
+                'SELECT id FROM processed_events WHERE event_id = ?',
+                [eventId]
+            );
+            if (existingEvents.length > 0) {
+                console.log(`Event ${eventId} već obrađen, preskačem.`);
+                return res.status(200).send('Event already processed.');
+            }
+        } finally {
+            connectionCheck.release();
+        }
 
         // Odmah odgovori Paddle-u
         res.status(200).send('Webhook successfully verified and processed.');
@@ -620,6 +636,12 @@ router.post('/paddle', async (req, res) => {
                 default:
                     console.log(`Događaj '${eventType}' primljen, ali se ignoriše.`);
             }
+            
+            // Na kraju uspešne obrade dodajte event u processed_events
+            await connection.query(
+                'INSERT INTO processed_events (event_id, processed_at) VALUES (?, NOW())',
+                [eventId]
+            );
             
             await connection.commit();
             console.log('=== OBRADA USPEŠNO ZAVRŠENA ===');
