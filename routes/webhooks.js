@@ -143,80 +143,104 @@ function verifyWebhookSignature(rawBody, signature, secret) {
 async function handleSubscriptionCreated(subscriptionData, connection) {
     try {
         console.log('=== OBRADA SUBSCRIPTION.CREATED ===');
-        
-        // Dobijamo customer podatke preko Paddle API-ja
+
+        // Pokušamo dohvatiti customer podatke preko Paddle API-ja (ako je moguće)
         const customer = await getCustomerById(subscriptionData.customer_id);
-        if (!customer || !customer.email) {
-            console.warn('Ne mogu da dohvatim customer podatke ili email ne postoji.');
+        const customerEmail = customer?.email?.toLowerCase();
+        const customerName = customer?.name || 'Korisnik';
+        const kursId = 1;
+
+        if (!customerEmail) {
+            console.warn('subscription.created: nema email-a u customer podacima, preskačem.');
             return;
         }
 
-        const customerEmail = customer.email.toLowerCase();
-        const customerName = customer.name || 'Korisnik';
-        const kursId = 1; // Fiksni ID za tvoj kurs
-
-        console.log(`Customer podaci - Email: ${customerEmail}, Ime: ${customerName}`);
-
-        // Izračunavanje datuma isteka na osnovu subscription podataka
-        let expiryDate = new Date();
-        if (subscriptionData.next_billed_at) {
-            expiryDate = new Date(subscriptionData.next_billed_at);
-        } else {
-            // Fallback na osnovu price_id iz subscription items
+        // Izračunavanje datuma isteka
+        let expiryDate = subscriptionData.next_billed_at ? new Date(subscriptionData.next_billed_at) : new Date();
+        if (!subscriptionData.next_billed_at) {
             const priceId = subscriptionData.items?.[0]?.price?.id;
-            if (priceId && PLAN_MAP[priceId]) {
-                expiryDate.setMonth(expiryDate.getMonth() + PLAN_MAP[priceId].months);
-            } else {
-                expiryDate.setMonth(expiryDate.getMonth() + 1);
-                console.warn(`Price ID '${priceId}' nije pronađen u PLAN_MAP. Postavljen fallback na 1 mesec.`);
-            }
+            if (priceId && PLAN_MAP[priceId]) expiryDate.setMonth(expiryDate.getMonth() + PLAN_MAP[priceId].months);
+            else expiryDate.setMonth(expiryDate.getMonth() + 1);
         }
 
-        console.log(`Datum isteka pretplate: ${expiryDate.toISOString()}`);
+        // 1) Pokušaj pronaći korisnika po paddle_customer_id ili email
+        const [rows] = await connection.query(
+            'SELECT id, paddle_customer_id FROM korisnici WHERE paddle_customer_id = ? OR email = ? LIMIT 1',
+            [subscriptionData.customer_id, customerEmail]
+        );
 
-        // Provera da li korisnik postoji (UPSERT logika)
-        const [existingUsers] = await connection.query('SELECT id FROM korisnici WHERE email = ?', [customerEmail]);
         let userId;
+        let createdNew = false;
 
-        if (existingUsers.length > 0) {
-            // KORISNIK POSTOJI: Ažuriraj mu datum isteka pretplate
-            userId = existingUsers[0].id;
+        if (rows.length > 0) {
+            // Postoji korisnik -> update
+            userId = rows[0].id;
             await connection.query(
-                'UPDATE korisnici SET subscription_expires_at = ?, paddle_customer_id = ? WHERE id = ?', 
-                [expiryDate, subscriptionData.customer_id, userId]
+                'UPDATE korisnici SET subscription_expires_at = ?, paddle_customer_id = COALESCE(paddle_customer_id, ?) , subscription_status = ? WHERE id = ?',
+                [expiryDate, subscriptionData.customer_id, 'active', userId]
             );
-            console.log(`Ažuriran postojeći korisnik (ID=${userId}) sa novim datumom isteka: ${expiryDate.toISOString()}`);
+            console.log(`Ažuriran postojeći korisnik (ID=${userId}), novi expiry=${expiryDate.toISOString()}`);
         } else {
-            // KORISNIK NE POSTOJI: Kreiraj novi nalog
+            // Ne postoji -> pokušaj da kreiramo nov nalog (ali pazimo na race condition)
             const password = generateRandomPassword();
             const hashedPassword = await bcrypt.hash(password, 10);
             const [ime, ...prezimeParts] = customerName.split(/\s+/);
             const prezime = prezimeParts.join(' ') || ime;
 
-            const [newUserResult] = await connection.query(
-                `INSERT INTO korisnici (ime, prezime, email, sifra, uloga, subscription_expires_at, paddle_customer_id) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE subscription_expires_at = VALUES(subscription_expires_at), paddle_customer_id = VALUES(paddle_customer_id)`,
-    [ime, prezime, customerEmail, hashedPassword, 'korisnik', expiryDate, subscriptionData.customer_id]
-);
-            userId = newUserResult.insertId;
-            console.log(`Kreiran novi korisnik ID=${userId}, email=${customerEmail}, pretplata ističe=${expiryDate.toISOString()}`);
-            
-            // Pošalji welcome email
-            await sendWelcomeEmail(customerEmail, password, ime);
+            try {
+                const [insertRes] = await connection.query(
+                    `INSERT INTO korisnici (ime, prezime, email, sifra, uloga, subscription_expires_at, paddle_customer_id, subscription_status)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [ime, prezime, customerEmail, hashedPassword, 'korisnik', expiryDate, subscriptionData.customer_id, 'active']
+                );
+                userId = insertRes.insertId;
+                createdNew = true;
+                console.log(`Kreiran novi korisnik ID=${userId}, email=${customerEmail}`);
+            } catch (err) {
+                if (err && err.code === 'ER_DUP_ENTRY') {
+                    // Nekome se u međuvremenu kreirao nalog — dohvatimo ga i update-ujemo
+                    console.warn('INSERT bacio ER_DUP_ENTRY, pokušavam SELECT i update umesto kreiranja...');
+                    const [existing] = await connection.query(
+                        'SELECT id FROM korisnici WHERE email = ? LIMIT 1',
+                        [customerEmail]
+                    );
+                    if (existing.length > 0) {
+                        userId = existing[0].id;
+                        await connection.query(
+                            'UPDATE korisnici SET subscription_expires_at = ?, paddle_customer_id = COALESCE(paddle_customer_id, ?), subscription_status = ? WHERE id = ?',
+                            [expiryDate, subscriptionData.customer_id, 'active', userId]
+                        );
+                        console.log(`Nakon ER_DUP_ENTRY: ažuriran postojeći korisnik ID=${userId}`);
+                    } else {
+                        // Neočekivano stanje
+                        throw err;
+                    }
+                } else {
+                    throw err;
+                }
+            }
+
+            // Ako smo kreirali nov korisnik, pošalji welcome e-mail
+            if (createdNew) {
+                try {
+                    await sendWelcomeEmail(customerEmail, password, ime);
+                } catch (mailErr) {
+                    console.warn('Neuspeo slanje welcome email-a:', mailErr);
+                }
+            }
         }
 
-        // DODELA PRISTUPA KURSU
+        // Dodela/obnova pristupa kursu (INSERT/ON DUPLICATE)
         await connection.query(
-            'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE datum_kupovine=NOW()',
+            'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE datum_kupovine = NOW()',
             [userId, kursId]
         );
-        console.log(`Korisniku ID ${userId} je dodeljen/ažuriran pristup kursu ID ${kursId}.`);
-        
-        // Upis u `transakcije` tabelu za evidenciju (ako imamo transaction_id)
+
+        // Upis u transakcije ako imamo transaction_id
         if (subscriptionData.transaction_id) {
             const transaction = await getTransactionById(subscriptionData.transaction_id);
-            const amount = transaction ? (transaction.details.totals.total / 100) : 0;
-            const currency = subscriptionData.currency_code || 'USD';
-            
+            const amount = transaction ? (transaction.details?.totals?.total / 100) : 0;
+            const currency = subscriptionData.currency_code || null;
             await connection.query(
                 'INSERT INTO transakcije (provider_order_id, korisnik_id, kurs_id, iznos, valuta, status_placanja, podaci_kupca) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 [
@@ -229,16 +253,15 @@ async function handleSubscriptionCreated(subscriptionData, connection) {
                     JSON.stringify(subscriptionData)
                 ]
             );
-            console.log(`Evidentirana subscription ${subscriptionData.id} za korisnika ID ${userId}.`);
         }
 
-        console.log('=== SUBSCRIPTION.CREATED USPEŠNO OBRAĐEN ===');
-        
+        console.log('=== SUBSCRIPTION.CREATED PROCESIRAN ===');
     } catch (error) {
         console.error('Greška u handleSubscriptionCreated:', error);
         throw error;
     }
 }
+
 
 // --- Funkcija za obradu subscription.renewed događaja ---
 async function handleSubscriptionRenewed(subscriptionData, connection) {
@@ -303,77 +326,117 @@ async function handleSubscriptionRenewed(subscriptionData, connection) {
 
 // --- Funkcija za obradu transaction.completed događaja ---
 async function handleTransactionCompleted(transaction, connection) {
-    if (!transaction || !transaction.customer || !transaction.customer.email) {
-        console.warn('handleTransactionCompleted: Transakcija nema email kupca, preskače se.');
-        return;
+    try {
+        if (!transaction || !transaction.customer || !transaction.customer.email) {
+            console.warn('handleTransactionCompleted: Transakcija nema email kupca, preskače se.');
+            return;
+        }
+
+        const customerEmail = transaction.customer.email.toLowerCase();
+        const customerName = transaction.customer.name || 'Korisnik';
+        const customerId = transaction.customer_id;
+        const kursId = 1;
+
+        // Izračunavanje datuma isteka
+        let expiryDate = new Date();
+        const priceId = transaction.items?.[0]?.price_id;
+        if (priceId && PLAN_MAP[priceId]) {
+            expiryDate.setMonth(expiryDate.getMonth() + PLAN_MAP[priceId].months);
+        } else {
+            expiryDate.setMonth(expiryDate.getMonth() + 1);
+        }
+
+        // Pokušaj pronaći korisnika po paddle_customer_id ili email
+        const [rows] = await connection.query(
+            'SELECT id, paddle_customer_id FROM korisnici WHERE paddle_customer_id = ? OR email = ? LIMIT 1',
+            [customerId, customerEmail]
+        );
+
+        let userId;
+        let createdNew = false;
+        let plainPassword = null;
+
+        if (rows.length > 0) {
+            // Ako postoji -> update
+            userId = rows[0].id;
+            await connection.query(
+                'UPDATE korisnici SET subscription_expires_at = ?, paddle_customer_id = COALESCE(paddle_customer_id, ?) , subscription_status = ? WHERE id = ?',
+                [expiryDate, customerId, 'active', userId]
+            );
+            console.log(`Postojeći korisnik ID=${userId} ažuriran, novo isticanje: ${expiryDate.toISOString()}`);
+        } else {
+            // Ne postoji -> pokušaj da kreiramo nov nalog (sa rukovanjem ER_DUP_ENTRY)
+            plainPassword = generateRandomPassword();
+            const hashedPassword = await bcrypt.hash(plainPassword, 10);
+            const [ime, ...prezimeParts] = customerName.split(/\s+/);
+            const prezime = prezimeParts.join(' ') || ime;
+
+            try {
+                const [insertRes] = await connection.query(
+                    `INSERT INTO korisnici (ime, prezime, email, sifra, uloga, subscription_expires_at, paddle_customer_id, subscription_status)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [ime, prezime, customerEmail, hashedPassword, 'korisnik', expiryDate, customerId, 'active']
+                );
+                userId = insertRes.insertId;
+                createdNew = true;
+                console.log(`Kreiran novi korisnik ID=${userId}, email=${customerEmail}`);
+            } catch (err) {
+                if (err && err.code === 'ER_DUP_ENTRY') {
+                    // Utrka - dohvatimo već postojeći user
+                    console.warn('transaction.completed: ER_DUP_ENTRY na insert, pokušavam SELECT...');
+                    const [existing] = await connection.query('SELECT id FROM korisnici WHERE email = ? LIMIT 1', [customerEmail]);
+                    if (existing.length > 0) {
+                        userId = existing[0].id;
+                        await connection.query(
+                            'UPDATE korisnici SET subscription_expires_at = ?, paddle_customer_id = COALESCE(paddle_customer_id, ?), subscription_status = ? WHERE id = ?',
+                            [expiryDate, customerId, 'active', userId]
+                        );
+                        console.log(`Nakon ER_DUP_ENTRY: ažuriran korisnik ID=${userId}`);
+                    } else {
+                        throw err;
+                    }
+                } else {
+                    throw err;
+                }
+            }
+
+            if (createdNew) {
+                try {
+                    await sendWelcomeEmail(customerEmail, plainPassword, ime);
+                } catch (mailErr) {
+                    console.warn('Neuspeo slanje welcome email-a:', mailErr);
+                }
+            }
+        }
+
+        // Dodela pristupa kursu
+        await connection.query(
+            'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE datum_kupovine = NOW()',
+            [userId, kursId]
+        );
+
+        // Upis u transakcije
+        const amount = transaction.details?.totals?.total ? (transaction.details.totals.total / 100) : 0;
+        await connection.query(
+            'INSERT INTO transakcije (provider_order_id, korisnik_id, kurs_id, iznos, valuta, status_placanja, podaci_kupca) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [
+                transaction.id,
+                userId,
+                kursId,
+                amount,
+                transaction.currency_code || null,
+                transaction.status || null,
+                JSON.stringify(transaction)
+            ]
+        );
+
+        console.log(`transaction.completed: Evidentirana transakcija ${transaction.id} za korisnika ID ${userId}.`);
+    } catch (error) {
+        console.error('Greška u handleTransactionCompleted:', error);
+        throw error;
     }
-
-    const customerEmail = transaction.customer.email.toLowerCase();
-    const customerName = transaction.customer.name || 'Korisnik';
-    const customerId = transaction.customer_id; // Paddle/Pay provider ID
-    const kursId = 1; // Fiksni ID za tvoj kurs
-
-    // Izračunavanje datuma isteka
-    let expiryDate = new Date();
-    const priceId = transaction.items?.[0]?.price_id;
-    if (priceId && PLAN_MAP[priceId]) {
-        expiryDate.setMonth(expiryDate.getMonth() + PLAN_MAP[priceId].months);
-    } else {
-        expiryDate.setMonth(expiryDate.getMonth() + 1);
-        console.warn(`Price ID '${priceId}' nije pronađen u PLAN_MAP. Postavljen fallback na 1 mesec.`);
-    }
-
-    // Generisanje lozinke i hash
-    const password = generateRandomPassword();
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const [ime, ...prezimeParts] = customerName.split(/\s+/);
-    const prezime = prezimeParts.join(' ') || ime;
-
-    // UPSERT logika za korisnika (INSERT ... ON DUPLICATE KEY UPDATE)
-    const [userResult] = await connection.query(
-        `INSERT INTO korisnici (ime, prezime, email, sifra, uloga, subscription_expires_at, paddle_customer_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-            subscription_expires_at = VALUES(subscription_expires_at),
-            paddle_customer_id = COALESCE(paddle_customer_id, VALUES(paddle_customer_id))`,
-        [ime, prezime, customerEmail, hashedPassword, 'korisnik', expiryDate, customerId]
-    );
-
-    // Dobijamo ID korisnika
-    let userId;
-    if (userResult.insertId) {
-        userId = userResult.insertId;
-        console.log(`Kreiran novi korisnik ID=${userId}, email=${customerEmail}`);
-        await sendWelcomeEmail(customerEmail, password, ime);
-    } else {
-        // Ako je postojao, dohvatimo njegov ID
-        const [existing] = await connection.query('SELECT id FROM korisnici WHERE email = ?', [customerEmail]);
-        userId = existing[0].id;
-        console.log(`Postojeći korisnik ID=${userId} ažuriran sa novim datumom isteka`);
-    }
-
-    // Dodela pristupa kursu sa UPSERT logikom
-    await connection.query(
-        'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE datum_kupovine=NOW()',
-        [userId, kursId]
-    );
-    console.log(`Korisniku ID ${userId} je dodeljen/ažuriran pristup kursu ID ${kursId}.`);
-
-    // Evidencija transakcije
-    await connection.query(
-        'INSERT INTO transakcije (provider_order_id, korisnik_id, kurs_id, iznos, valuta, status_placanja, podaci_kupca) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [
-            transaction.id,
-            userId,
-            kursId,
-            (transaction.details.totals.total / 100),
-            transaction.currency_code,
-            transaction.status,
-            JSON.stringify(transaction)
-        ]
-    );
-    console.log(`Evidentirana transakcija ${transaction.id} za korisnika ID ${userId}.`);
 }
+
 
 
 // --- DODAJTE OVE FUNKCIJE ---
