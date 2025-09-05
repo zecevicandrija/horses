@@ -310,7 +310,7 @@ async function handleTransactionCompleted(transaction, connection) {
 
     const customerEmail = transaction.customer.email.toLowerCase();
     const customerName = transaction.customer.name || 'Korisnik';
-    const customerId = transaction.customer_id; // DODANO
+    const customerId = transaction.customer_id; // Paddle/Pay provider ID
     const kursId = 1; // Fiksni ID za tvoj kurs
 
     // Izračunavanje datuma isteka
@@ -323,42 +323,43 @@ async function handleTransactionCompleted(transaction, connection) {
         console.warn(`Price ID '${priceId}' nije pronađen u PLAN_MAP. Postavljen fallback na 1 mesec.`);
     }
 
-    // Provera da li korisnik postoji (UPSERT logika)
-    const [existingUsers] = await connection.query('SELECT id FROM korisnici WHERE email = ?', [customerEmail]);
+    // Generisanje lozinke i hash
+    const password = generateRandomPassword();
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const [ime, ...prezimeParts] = customerName.split(/\s+/);
+    const prezime = prezimeParts.join(' ') || ime;
+
+    // UPSERT logika za korisnika (INSERT ... ON DUPLICATE KEY UPDATE)
+    const [userResult] = await connection.query(
+        `INSERT INTO korisnici (ime, prezime, email, sifra, uloga, subscription_expires_at, paddle_customer_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+            subscription_expires_at = VALUES(subscription_expires_at),
+            paddle_customer_id = COALESCE(paddle_customer_id, VALUES(paddle_customer_id))`,
+        [ime, prezime, customerEmail, hashedPassword, 'korisnik', expiryDate, customerId]
+    );
+
+    // Dobijamo ID korisnika
     let userId;
-
-    if (existingUsers.length > 0) {
-        userId = existingUsers[0].id;
-        // DODANO: postaviti paddle_customer_id ako nije postavljen
-        await connection.query(
-            'UPDATE korisnici SET subscription_expires_at = ?, paddle_customer_id = COALESCE(paddle_customer_id, ?) WHERE id = ?', 
-            [expiryDate, customerId, userId]
-        );
-        console.log(`Ažuriran postojeći korisnik (ID=${userId}) sa novim datumom isteka: ${expiryDate.toISOString()}`);
-    } else {
-        const password = generateRandomPassword();
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const [ime, ...prezimeParts] = customerName.split(/\s+/);
-        const prezime = prezimeParts.join(' ') || ime;
-
-        const [newUserResult] = await connection.query(
-            'INSERT INTO korisnici (ime, prezime, email, sifra, uloga, subscription_expires_at, paddle_customer_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [ime, prezime, customerEmail, hashedPassword, 'korisnik', expiryDate, customerId]
-        );
-        userId = newUserResult.insertId;
-        console.log(`Kreiran novi korisnik ID=${userId}, email=${customerEmail}, pretplata ističe=${expiryDate.toISOString()}`);
-        
+    if (userResult.insertId) {
+        userId = userResult.insertId;
+        console.log(`Kreiran novi korisnik ID=${userId}, email=${customerEmail}`);
         await sendWelcomeEmail(customerEmail, password, ime);
+    } else {
+        // Ako je postojao, dohvatimo njegov ID
+        const [existing] = await connection.query('SELECT id FROM korisnici WHERE email = ?', [customerEmail]);
+        userId = existing[0].id;
+        console.log(`Postojeći korisnik ID=${userId} ažuriran sa novim datumom isteka`);
     }
 
-    // DODELA PRISTUPA KURSU
+    // Dodela pristupa kursu sa UPSERT logikom
     await connection.query(
         'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE datum_kupovine=NOW()',
         [userId, kursId]
     );
     console.log(`Korisniku ID ${userId} je dodeljen/ažuriran pristup kursu ID ${kursId}.`);
-    
-    // Upis u `transakcije` tabelu za evidenciju
+
+    // Evidencija transakcije
     await connection.query(
         'INSERT INTO transakcije (provider_order_id, korisnik_id, kurs_id, iznos, valuta, status_placanja, podaci_kupca) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
@@ -373,6 +374,7 @@ async function handleTransactionCompleted(transaction, connection) {
     );
     console.log(`Evidentirana transakcija ${transaction.id} za korisnika ID ${userId}.`);
 }
+
 
 // --- DODAJTE OVE FUNKCIJE ---
 async function handlePaymentSucceeded(subscriptionData, connection) {
