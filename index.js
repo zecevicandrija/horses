@@ -1,5 +1,4 @@
 require('dotenv').config();
-console.log('ADMIN_API_KEY =', process.env.ADMIN_API_KEY);
 const express = require('express');
 const cors = require('cors');
 const db = require('./db');
