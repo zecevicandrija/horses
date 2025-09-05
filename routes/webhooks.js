@@ -194,9 +194,9 @@ async function handleSubscriptionCreated(subscriptionData, connection) {
             const prezime = prezimeParts.join(' ') || ime;
 
             const [newUserResult] = await connection.query(
-                'INSERT INTO korisnici (ime, prezime, email, sifra, uloga, subscription_expires_at, paddle_customer_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [ime, prezime, customerEmail, hashedPassword, 'korisnik', expiryDate, subscriptionData.customer_id]
-            );
+                `INSERT INTO korisnici (ime, prezime, email, sifra, uloga, subscription_expires_at, paddle_customer_id) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE subscription_expires_at = VALUES(subscription_expires_at), paddle_customer_id = VALUES(paddle_customer_id)`,
+    [ime, prezime, customerEmail, hashedPassword, 'korisnik', expiryDate, subscriptionData.customer_id]
+);
             userId = newUserResult.insertId;
             console.log(`Kreiran novi korisnik ID=${userId}, email=${customerEmail}, pretplata ističe=${expiryDate.toISOString()}`);
             
