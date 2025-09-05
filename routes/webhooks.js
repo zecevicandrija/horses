@@ -231,9 +231,10 @@ async function handleSubscriptionCreated(subscriptionData, connection) {
         }
 
         // Dodela/obnova pristupa kursu (INSERT/ON DUPLICATE)
+        const priceIdFromSub = subscriptionData.items?.[0]?.price?.id || null;
         await connection.query(
-            'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE datum_kupovine = NOW()',
-            [userId, kursId]
+            'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine, price_id) VALUES (?, ?, NOW(), ?) ON DUPLICATE KEY UPDATE datum_kupovine = NOW(), price_id = COALESCE(price_id, VALUES(price_id))',
+            [userId, kursId, priceIdFromSub]
         );
 
         // Upis u transakcije ako imamo transaction_id
@@ -408,11 +409,11 @@ async function handleTransactionCompleted(transaction, connection) {
                 }
             }
         }
-
+        const priceIdFromTx = transaction.items?.[0]?.price_id || null;
         // Dodela pristupa kursu
         await connection.query(
-            'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE datum_kupovine = NOW()',
-            [userId, kursId]
+            'INSERT INTO kupovina (korisnik_id, kurs_id, datum_kupovine, price_id) VALUES (?, ?, NOW(), ?) ON DUPLICATE KEY UPDATE datum_kupovine = NOW(), price_id = COALESCE(price_id, VALUES(price_id))',
+            [userId, kursId, priceIdFromTx]
         );
 
         // Upis u transakcije

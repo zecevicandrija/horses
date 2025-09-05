@@ -8,7 +8,7 @@ router.get('/user/:korisnikId', async (req, res) => {
         const korisnikId = req.params.korisnikId;
         // Ažuriran upit da dohvati i 'is_subscription' informaciju
         const query = `
-            SELECT k.*, p.datum_kupovine, k.is_subscription 
+            SELECT k.*, p.datum_kupovine, k.is_subscription, p.price_id 
             FROM kursevi k
             INNER JOIN kupovina p ON k.id = p.kurs_id
             WHERE p.korisnik_id = ?
