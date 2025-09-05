@@ -38,6 +38,7 @@ async function sendWelcomeEmail(toEmail, plainPassword, firstName = 'Korisnik') 
               <p><strong>Email:</strong> ${toEmail}</p>
               <p><strong>Lozinka:</strong> <span style="color:#ff3c00">${plainPassword}</span></p>
               <p>Link za prijavu: https://motionakademija.com/login</p>
+              <p>Privatna Discord zajednica: https://discord.gg/filipmotion</p>
             </div>
           </div>
         `;
@@ -239,6 +240,67 @@ async function handleSubscriptionCreated(subscriptionData, connection) {
     }
 }
 
+// --- Funkcija za obradu subscription.renewed događaja ---
+async function handleSubscriptionRenewed(subscriptionData, connection) {
+    try {
+        console.log('=== OBRADA SUBSCRIPTION.RENEWED ===');
+        
+        const customerId = subscriptionData.customer_id;
+        let expiryDate = new Date();
+        
+        if (subscriptionData.next_billed_at) {
+            expiryDate = new Date(subscriptionData.next_billed_at);
+        } else {
+            // Fallback na osnovu price_id
+            const priceId = subscriptionData.items?.[0]?.price?.id;
+            if (priceId && PLAN_MAP[priceId]) {
+                expiryDate.setMonth(expiryDate.getMonth() + PLAN_MAP[priceId].months);
+            } else {
+                expiryDate.setMonth(expiryDate.getMonth() + 1);
+            }
+        }
+
+        // Ažuriraj datum isteka za korisnika
+        const [result] = await connection.query(
+            'UPDATE korisnici SET subscription_expires_at = ?, subscription_status = ? WHERE paddle_customer_id = ?',
+            [expiryDate, 'active', customerId]
+        );
+
+        if (result.affectedRows > 0) {
+            console.log(`Pretplata produžena za customer_id: ${customerId}, novi datum isteka: ${expiryDate.toISOString()}`);
+            
+            // Dodaj novi zapis u transakcije za renewal
+            if (subscriptionData.transaction_id) {
+                const transaction = await getTransactionById(subscriptionData.transaction_id);
+                const [user] = await connection.query('SELECT id FROM korisnici WHERE paddle_customer_id = ?', [customerId]);
+                
+                if (user.length > 0 && transaction) {
+                    await connection.query(
+                        'INSERT INTO transakcije (provider_order_id, korisnik_id, kurs_id, iznos, valuta, status_placanja, podaci_kupca, tip_transakcije) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                        [
+                            subscriptionData.id,
+                            user[0].id,
+                            1, // kurs_id
+                            (transaction.details.totals.total / 100),
+                            subscriptionData.currency_code,
+                            'completed',
+                            JSON.stringify(subscriptionData),
+                            'renewal'
+                        ]
+                    );
+                    console.log(`Evidentiran renewal za subscription ${subscriptionData.id}`);
+                }
+            }
+        } else {
+            console.warn(`Ne mogu da pronađem korisnika sa paddle_customer_id: ${customerId}`);
+        }
+        
+    } catch (error) {
+        console.error('Greška u handleSubscriptionRenewed:', error);
+        throw error;
+    }
+}
+
 // --- Funkcija za obradu transaction.completed događaja ---
 async function handleTransactionCompleted(transaction, connection) {
     if (!transaction || !transaction.customer || !transaction.customer.email) {
@@ -248,6 +310,7 @@ async function handleTransactionCompleted(transaction, connection) {
 
     const customerEmail = transaction.customer.email.toLowerCase();
     const customerName = transaction.customer.name || 'Korisnik';
+    const customerId = transaction.customer_id; // DODANO
     const kursId = 1; // Fiksni ID za tvoj kurs
 
     // Izračunavanje datuma isteka
@@ -266,7 +329,11 @@ async function handleTransactionCompleted(transaction, connection) {
 
     if (existingUsers.length > 0) {
         userId = existingUsers[0].id;
-        await connection.query('UPDATE korisnici SET subscription_expires_at = ? WHERE id = ?', [expiryDate, userId]);
+        // DODANO: postaviti paddle_customer_id ako nije postavljen
+        await connection.query(
+            'UPDATE korisnici SET subscription_expires_at = ?, paddle_customer_id = COALESCE(paddle_customer_id, ?) WHERE id = ?', 
+            [expiryDate, customerId, userId]
+        );
         console.log(`Ažuriran postojeći korisnik (ID=${userId}) sa novim datumom isteka: ${expiryDate.toISOString()}`);
     } else {
         const password = generateRandomPassword();
@@ -275,8 +342,8 @@ async function handleTransactionCompleted(transaction, connection) {
         const prezime = prezimeParts.join(' ') || ime;
 
         const [newUserResult] = await connection.query(
-            'INSERT INTO korisnici (ime, prezime, email, sifra, uloga, subscription_expires_at) VALUES (?, ?, ?, ?, ?, ?)',
-            [ime, prezime, customerEmail, hashedPassword, 'korisnik', expiryDate]
+            'INSERT INTO korisnici (ime, prezime, email, sifra, uloga, subscription_expires_at, paddle_customer_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [ime, prezime, customerEmail, hashedPassword, 'korisnik', expiryDate, customerId]
         );
         userId = newUserResult.insertId;
         console.log(`Kreiran novi korisnik ID=${userId}, email=${customerEmail}, pretplata ističe=${expiryDate.toISOString()}`);
@@ -305,6 +372,109 @@ async function handleTransactionCompleted(transaction, connection) {
         ]
     );
     console.log(`Evidentirana transakcija ${transaction.id} za korisnika ID ${userId}.`);
+}
+
+// --- DODAJTE OVE FUNKCIJE ---
+async function handlePaymentSucceeded(subscriptionData, connection) {
+    try {
+        console.log('=== OBRADA SUBSCRIPTION.PAYMENT_SUCCEEDED ===');
+        
+        // Osiguraj da korisnik ima aktivan pristup
+        const [result] = await connection.query(
+            'UPDATE korisnici SET subscription_status = ? WHERE paddle_customer_id = ?',
+            ['active', subscriptionData.customer_id]
+        );
+        
+        if (result.affectedRows > 0) {
+            console.log(`Potvrđen uspešan payment za customer_id: ${subscriptionData.customer_id}`);
+        } else {
+            console.warn(`Korisnik sa paddle_customer_id ${subscriptionData.customer_id} nije pronađen`);
+        }
+        
+    } catch (error) {
+        console.error('Greška u handlePaymentSucceeded:', error);
+        throw error;
+    }
+}
+
+async function handlePaymentFailed(subscriptionData, connection) {
+    try {
+        console.log('=== OBRADA SUBSCRIPTION.PAYMENT_FAILED ===');
+        
+        // Označi kao neaktivan, ali ne uklanjaj pristup odmah
+        // (Paddle će poslati još nekoliko pokušaja)
+        const [result] = await connection.query(
+            'UPDATE korisnici SET subscription_status = ? WHERE paddle_customer_id = ?',
+            ['payment_failed', subscriptionData.customer_id]
+        );
+        
+        if (result.affectedRows > 0) {
+            console.log(`Payment failed za customer_id: ${subscriptionData.customer_id}`);
+        }
+        
+        // TODO: Opciono - pošaljite email korisniku o neuspešnoj naplati
+        
+    } catch (error) {
+        console.error('Greška u handlePaymentFailed:', error);
+        throw error;
+    }
+}
+
+async function handleSubscriptionCancelled(subscriptionData, connection) {
+    try {
+        console.log('=== OBRADA SUBSCRIPTION.CANCELLED ===');
+        
+        // Postaviti status na cancelled, ali zadržati pristup do kraja billing ciklusa
+        const [result] = await connection.query(
+            'UPDATE korisnici SET subscription_status = ? WHERE paddle_customer_id = ?',
+            ['cancelled', subscriptionData.customer_id]
+        );
+        
+        if (result.affectedRows > 0) {
+            console.log(`Subscription cancelled za customer_id: ${subscriptionData.customer_id}`);
+            // Korisnik zadržava pristup do subscription_expires_at datuma
+        }
+        
+    } catch (error) {
+        console.error('Greška u handleSubscriptionCancelled:', error);
+        throw error;
+    }
+}
+
+async function handleSubscriptionExpired(subscriptionData, connection) {
+    try {
+        console.log('=== OBRADA SUBSCRIPTION.EXPIRED ===');
+        
+        // Pronađi korisnika i ukloni mu pristup
+        const [users] = await connection.query(
+            'SELECT id FROM korisnici WHERE paddle_customer_id = ?',
+            [subscriptionData.customer_id]
+        );
+        
+        if (users.length > 0) {
+            const userId = users[0].id;
+            
+            // Ukloni pristup kursu
+            await connection.query(
+                'DELETE FROM kupovina WHERE korisnik_id = ?',
+                [userId]
+            );
+            
+            // Ažuriraj status korisnika
+            await connection.query(
+                'UPDATE korisnici SET subscription_status = ?, subscription_expires_at = NULL WHERE id = ?',
+                ['expired', userId]
+            );
+            
+            console.log(`Pristup uklonjen za expired subscription, user_id: ${userId}`);
+        } else {
+            console.warn(`Korisnik sa paddle_customer_id ${subscriptionData.customer_id} nije pronađen`);
+        }
+        
+    } catch (error) {
+        console.error('Greška u handleSubscriptionExpired:', error);
+        throw error;
+    }
 }
 
 // --- Glavni Webhook Ruter ---
@@ -356,19 +526,29 @@ router.post('/paddle', async (req, res) => {
                     await handleSubscriptionCreated(event.data, connection);
                     break;
                 
-                case 'transaction.completed':
-                    await handleTransactionCompleted(event.data, connection);
+                case 'subscription.updated':
+                case 'subscription.renewed':
+                    await handleSubscriptionRenewed(event.data, connection);
                     break;
                 
-                case 'subscription.updated':
-                    const sub = event.data;
-                    if (sub.customer_id && sub.next_billed_at) {
-                        await connection.query(
-                            'UPDATE korisnici SET subscription_expires_at = ? WHERE paddle_customer_id = ?',
-                            [new Date(sub.next_billed_at), sub.customer_id]
-                        );
-                        console.log(`Ažuriran subscription za customer_id: ${sub.customer_id}`);
-                    }
+                case 'subscription.payment_succeeded':
+                    await handlePaymentSucceeded(event.data, connection);
+                    break;
+                
+                case 'subscription.payment_failed':
+                    await handlePaymentFailed(event.data, connection);
+                    break;
+                
+                case 'subscription.cancelled':
+                    await handleSubscriptionCancelled(event.data, connection);
+                    break;
+                
+                case 'subscription.expired':
+                    await handleSubscriptionExpired(event.data, connection);
+                    break;
+                
+                case 'transaction.completed':
+                    await handleTransactionCompleted(event.data, connection);
                     break;
                 
                 default:

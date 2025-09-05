@@ -19,6 +19,7 @@ const placanjeRouter = require('./routes/placanje');
 const webhooksRouter = require('./routes/webhooks');
 const sekcijeRouter = require('./routes/sekcije');
 const paddlePaylinkRouter = require('./routes/paddlePaylink');
+const adminRouter = require('./routes/admin');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -55,6 +56,7 @@ app.use('/api/rezultati_kviza', rezultatiKvizaRouter);
 app.use('/api/placanje', placanjeRouter);
 app.use('/api/sekcije', sekcijeRouter);
 app.use('/api/paddle', paddlePaylinkRouter);
+app.use('/api/admin', adminRouter);
 
 // Start server
 app.listen(port, () => {
