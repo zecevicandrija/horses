@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const db = require('../db');
 // Uvozimo ispravne funkcije iz našeg Bunny.js helpera
-const { createVideo, uploadVideo, getSecurePlayerUrl } = require('../utils/bunny');
+const { createVideo, uploadVideo, getSecurePlayerUrl, createUploadCredentials } = require('../utils/bunny');
 
 // Multer ostaje isti, on samo priprema fajl u memoriji
 const fs = require('fs');
@@ -14,42 +14,45 @@ const path = require('path');
 const upload = multer({ dest: 'uploads/' });
 
 
-// --- POST Dodavanje lekcije (AŽURIRANA LOGIKA) ---
-router.post('/', upload.single('video'), async (req, res) => {
-    let filePath = null;
+// --- NOVA RUTA: Priprema za direktan upload ---
+// Frontend poziva ovu rutu da dobije kredencijale za direktan TUS upload na Bunny
+router.post('/prepare-upload', async (req, res) => {
     try {
-        // IZMENA: Umesto 'section' sada primamo 'sekcija_id'
-        const { course_id, title, content, sekcija_id, assignment } = req.body;
+        const { title } = req.body;
 
-        // IZMENA: Proveravamo 'sekcija_id' umesto 'section' (iako nije obavezno za validaciju)
-        if (!course_id || !title || !content || !req.file) {
-            // Ako fajl postoji ali fali nešto drugo, obriši ga
-            if (req.file) fs.unlinkSync(req.file.path);
-            return res.status(400).json({ error: 'Sva polja i video su obavezni.' });
+        if (!title) {
+            return res.status(400).json({ error: 'Naslov videa je obavezan.' });
         }
 
-        filePath = req.file.path; // Čuvamo putanju do fajla
-        const videoObject = await createVideo(title);
-        const videoGuid = videoObject.guid;
+        // Generiši kredencijale za direktan upload
+        const credentials = await createUploadCredentials(title);
 
-        // IZMENA: Šaljemo stream umesto buffera
-        const fileStream = fs.createReadStream(filePath);
-        await uploadVideo(videoGuid, fileStream);
+        res.status(200).json(credentials);
+    } catch (error) {
+        console.error('Greška pri pripremi uploada:', error);
+        res.status(500).json({ error: 'Došlo je do greške na serveru.' });
+    }
+});
 
-        // IZMENA: Ažuriran SQL upit da koristi 'sekcija_id'
+// --- POST Dodavanje lekcije (NOVA LOGIKA - samo metadata) ---
+// Video je već uploadovan direktno na Bunny, ovde samo čuvamo metadata
+router.post('/', async (req, res) => {
+    try {
+        const { course_id, title, content, sekcija_id, assignment, video_guid } = req.body;
+
+        // Validacija - video_guid dolazi sa frontenda nakon uspešnog direktnog uploada
+        if (!course_id || !title || !content || !video_guid) {
+            return res.status(400).json({ error: 'Sva polja su obavezna (course_id, title, content, video_guid).' });
+        }
+
+        // Čuvamo lekciju u bazu - video je već na Bunny-ju
         const query = 'INSERT INTO lekcije (course_id, title, content, video_url, sekcija_id, assignment) VALUES (?, ?, ?, ?, ?, ?)';
-        // IZMENA: Prosleđujemo 'sekcija_id' u upit
-        await db.query(query, [course_id, title, content, videoGuid, sekcija_id, assignment || null]);
+        await db.query(query, [course_id, title, content, video_guid, sekcija_id || null, assignment || null]);
 
-        res.status(201).json({ message: 'Lekcija i video su uspešno dodati.' });
+        res.status(201).json({ message: 'Lekcija uspešno dodata.' });
     } catch (error) {
         console.error('Greška pri dodavanju lekcije:', error);
         res.status(500).json({ error: 'Došlo je do greške na serveru.' });
-    } finally {
-        // UVEK brišemo privremeni fajl, bilo da je uspelo ili ne
-        if (filePath && fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-        }
     }
 });
 

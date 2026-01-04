@@ -42,10 +42,37 @@ const uploadVideo = async (videoGuid, fileStream) => {
     }
 };
 
-// --- OVO JE KLJUČNA PROMENA ---
-// Stara, nebezbedna funkcija getPlayerUrl se briše.
-// Umesto nje, dodajemo novu, sigurnu funkciju.
+// --- NOVA FUNKCIJA ZA DIREKTAN UPLOAD ---
+// Generiše kredencijale za direktan TUS upload sa frontenda
+const createUploadCredentials = async (title) => {
+    try {
+        // 1. Kreiraj video objekt na Bunny-ju
+        const videoObject = await createVideo(title);
+        const videoId = videoObject.guid;
 
+        // 2. Generiši expiration time (1 sat od sada)
+        const expirationTime = Math.floor(Date.now() / 1000) + 3600;
+
+        // 3. Generiši SHA256 signature po Bunny dokumentaciji
+        // Formula: sha256(library_id + api_key + expiration_time + video_id)
+        const signature = crypto
+            .createHash('sha256')
+            .update(libraryId + apiKey + expirationTime + videoId)
+            .digest('hex');
+
+        return {
+            videoId,
+            libraryId: parseInt(libraryId),
+            authorizationSignature: signature,
+            authorizationExpire: expirationTime
+        };
+    } catch (error) {
+        console.error("Greška pri kreiranju upload kredencijala:", error);
+        throw error;
+    }
+};
+
+// --- FUNKCIJA ZA SIGURNO GLEDANJE VIDEA ---
 const getSecurePlayerUrl = (videoId) => {
     if (!tokenAuthKey) {
         console.error("BUNNY_TOKEN_AUTH_KEY nije postavljen u .env fajlu!");
@@ -69,4 +96,4 @@ const getSecurePlayerUrl = (videoId) => {
 };
 
 // Ažuriramo šta izvozimo iz fajla
-module.exports = { createVideo, uploadVideo, getSecurePlayerUrl };
+module.exports = { createVideo, uploadVideo, getSecurePlayerUrl, createUploadCredentials };
