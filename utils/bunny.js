@@ -5,7 +5,7 @@ const crypto = require('crypto'); // NOVO: Uvozimo 'crypto' modul
 const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
 const apiKey = process.env.BUNNY_STREAM_API_KEY;
 // NOVO: Učitavamo i ključ za autorizaciju tokena
-const tokenAuthKey = process.env.BUNNY_STREAM_TOKEN_KEY; 
+const tokenAuthKey = process.env.BUNNY_STREAM_TOKEN_KEY;
 
 const bunnyAPI = axios.create({
     baseURL: 'https://video.bunnycdn.com',
@@ -23,13 +23,16 @@ const createVideo = async (title) => {
     }
 };
 
-const uploadVideo = async (videoGuid, fileBuffer) => {
+const uploadVideo = async (videoGuid, fileStream) => {
     try {
-        await axios.put(`https://video.bunnycdn.com/library/${libraryId}/videos/${videoGuid}`, fileBuffer, {
+        // IZMENA: Podrška za stream i unlimited body length
+        await axios.put(`https://video.bunnycdn.com/library/${libraryId}/videos/${videoGuid}`, fileStream, {
             headers: {
                 'AccessKey': apiKey,
                 'Content-Type': 'application/octet-stream'
-            }
+            },
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
         });
         console.log(`Video sa GUID ${videoGuid} je uspešno uploadovan.`);
     } catch (error) {
@@ -49,9 +52,9 @@ const getSecurePlayerUrl = (videoId) => {
     }
 
     // Token će važiti 3 sata. Možete promeniti po potrebi.
-      const expires = Math.floor(Date.now() / 1000) + 3 * 60 * 60; 
+    const expires = Math.floor(Date.now() / 1000) + 3 * 60 * 60;
 
-     const path = `/embed/${libraryId}/${videoId}`;
+    const path = `/embed/${libraryId}/${videoId}`;
     const message = videoId + expires;
     const token = crypto
         .createHash('sha256')
@@ -60,7 +63,7 @@ const getSecurePlayerUrl = (videoId) => {
 
     // Sastavljanje sigurnog URL-a
     const secureUrl = `https://iframe.mediadelivery.net${path}?token=${token}&expires=${expires}`;
-    
+
     return secureUrl;
 };
 

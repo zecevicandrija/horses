@@ -6,52 +6,75 @@ const db = require('../db');
 const { createVideo, uploadVideo, getSecurePlayerUrl } = require('../utils/bunny');
 
 // Multer ostaje isti, on samo priprema fajl u memoriji
-const upload = multer({ storage: multer.memoryStorage() });
+const fs = require('fs');
+const path = require('path');
+
+// IZMENA: Koristimo disk storage umesto memory storage da ne bi gušili RAM
+// Fajlovi će privremeno biti sačuvani u 'uploads/' folderu
+const upload = multer({ dest: 'uploads/' });
 
 
 // --- POST Dodavanje lekcije (AŽURIRANA LOGIKA) ---
 router.post('/', upload.single('video'), async (req, res) => {
+    let filePath = null;
     try {
         // IZMENA: Umesto 'section' sada primamo 'sekcija_id'
         const { course_id, title, content, sekcija_id, assignment } = req.body;
 
         // IZMENA: Proveravamo 'sekcija_id' umesto 'section' (iako nije obavezno za validaciju)
         if (!course_id || !title || !content || !req.file) {
+            // Ako fajl postoji ali fali nešto drugo, obriši ga
+            if (req.file) fs.unlinkSync(req.file.path);
             return res.status(400).json({ error: 'Sva polja i video su obavezni.' });
         }
-        
+
+        filePath = req.file.path; // Čuvamo putanju do fajla
         const videoObject = await createVideo(title);
         const videoGuid = videoObject.guid;
 
-        await uploadVideo(videoGuid, req.file.buffer);
+        // IZMENA: Šaljemo stream umesto buffera
+        const fileStream = fs.createReadStream(filePath);
+        await uploadVideo(videoGuid, fileStream);
 
         // IZMENA: Ažuriran SQL upit da koristi 'sekcija_id'
         const query = 'INSERT INTO lekcije (course_id, title, content, video_url, sekcija_id, assignment) VALUES (?, ?, ?, ?, ?, ?)';
         // IZMENA: Prosleđujemo 'sekcija_id' u upit
         await db.query(query, [course_id, title, content, videoGuid, sekcija_id, assignment || null]);
-        
+
         res.status(201).json({ message: 'Lekcija i video su uspešno dodati.' });
     } catch (error) {
         console.error('Greška pri dodavanju lekcije:', error);
         res.status(500).json({ error: 'Došlo je do greške na serveru.' });
+    } finally {
+        // UVEK brišemo privremeni fajl, bilo da je uspelo ili ne
+        if (filePath && fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
     }
 });
 
 // --- PUT Ažuriranje lekcije (AŽURIRANA LOGIKA) ---
 router.put('/:id', upload.single('video'), async (req, res) => {
+    let filePath = null;
     try {
         const lessonId = req.params.id;
         // IZMENA: Umesto 'section' sada primamo 'sekcija_id'
         const { course_id, title, content, sekcija_id, video_url, assignment } = req.body;
         if (!course_id || !title || !content) {
+            if (req.file) fs.unlinkSync(req.file.path);
             return res.status(400).json({ error: 'Nedostaju obavezna polja.' });
         }
 
         let newVideoUrl = video_url || '';
         if (req.file) {
+            filePath = req.file.path;
             const videoObject = await createVideo(title);
             const videoGuid = videoObject.guid;
-            await uploadVideo(videoGuid, req.file.buffer);
+
+            // IZMENA: Stream
+            const fileStream = fs.createReadStream(filePath);
+            await uploadVideo(videoGuid, fileStream);
+
             newVideoUrl = videoGuid;
         }
 
@@ -59,11 +82,16 @@ router.put('/:id', upload.single('video'), async (req, res) => {
         const query = 'UPDATE lekcije SET course_id = ?, title = ?, content = ?, video_url = ?, sekcija_id = ?, assignment = ? WHERE id = ?';
         // IZMENA: Prosleđujemo 'sekcija_id' u upit
         await db.query(query, [course_id, title, content, newVideoUrl, sekcija_id, assignment, lessonId]);
-        
+
         res.status(200).json({ message: `Lekcija sa ID-jem ${lessonId} uspešno ažurirana.` });
     } catch (error) {
         console.error('Greška pri ažuriranju lekcije:', error);
         res.status(500).json({ error: 'Došlo je do greške na serveru.' });
+    } finally {
+        // Cleanup
+        if (filePath && fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
     }
 });
 

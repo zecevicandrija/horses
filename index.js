@@ -5,7 +5,7 @@ const db = require('./db');
 
 // Uvoz svih vaših ruta
 const authRouter = require('./routes/auth');
-const korisniciRouter = require('./routes/korisnici'); 
+const korisniciRouter = require('./routes/korisnici');
 const kurseviRouter = require('./routes/kursevi');
 const lekcijeRouter = require('./routes/lekcije');
 const wishlistRouter = require('./routes/wishlist');
@@ -29,7 +29,8 @@ const port = process.env.PORT || 5000;
 const allowedOrigins = [
     'https://motionakademija.com',
     'https://api.motionakademija.com',
-    'https://motionakademija.com/'
+    'https://motionakademija.com/',
+    'http://localhost:3000'
 ];
 app.use(cors({ origin: allowedOrigins }));
 
