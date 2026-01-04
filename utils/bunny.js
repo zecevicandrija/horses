@@ -32,7 +32,8 @@ const uploadVideo = async (videoGuid, fileStream) => {
                 'Content-Type': 'application/octet-stream'
             },
             maxContentLength: Infinity,
-            maxBodyLength: Infinity
+            maxBodyLength: Infinity,
+            timeout: 0
         });
         console.log(`Video sa GUID ${videoGuid} je uspešno uploadovan.`);
     } catch (error) {

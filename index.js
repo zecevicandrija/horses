@@ -58,6 +58,7 @@ app.use('/api/paddle', paddlePaylinkRouter);
 app.use('/api/admin', adminRouter);
 
 // Start server
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
+server.timeout = 1800000;
